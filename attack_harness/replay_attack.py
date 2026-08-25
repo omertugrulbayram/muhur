@@ -19,8 +19,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
 
 import jwt
 from app.poa import checkin as poa
+from app.pop import issuer as pop
 
-NISHANI = "ornek-dogrulanmis-hesap-nisani"
+def _valid_personhood_token():
+    credential = pop.issue_personhood_credential("test-id", 1999)
+    return pop.issue_personhood_token(credential)
+
+NISHANI = _valid_personhood_token()  # artik gecerli, imzali bir personhood token
 
 
 def try_checkin(token, enforce):

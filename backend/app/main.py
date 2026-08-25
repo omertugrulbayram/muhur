@@ -10,7 +10,7 @@ Sonra tarayıcıda:  http://127.0.0.1:8000/docs
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from app.pop.issuer import issue_personhood_credential
+from app.pop.issuer import issue_personhood_credential, issue_personhood_token
 from app.poa.checkin import issue_checkin_token, verify_checkin, CheckinError
 
 app = FastAPI(
@@ -39,7 +39,13 @@ class PopVerifyRequest(BaseModel):
 @app.post("/pop/verify")
 def pop_verify(req: PopVerifyRequest):
     credential = issue_personhood_credential(req.national_id, req.birth_year)
-    return {"message": "Dogrulandi (simulasyon). Kimlik bilgisi saklanmadi.", "credential": credential}
+    # Faz 4a: PoA'nin dogrulayabilecegi imzali personhood token da uretilir.
+    personhood_token = issue_personhood_token(credential)
+    return {
+        "message": "Dogrulandi (simulasyon). Kimlik bilgisi saklanmadi.",
+        "credential": credential,
+        "personhood_token": personhood_token,
+    }
 
 
 # ---------------- PoA ----------------
@@ -56,14 +62,15 @@ def poa_qr(req: QrRequest):
 
 class CheckinRequest(BaseModel):
     checkin_token: str
-    uniqueness_nishani: str = Field(..., description="Kullanicinin PoP nisani")
+    personhood_token: str = Field(..., description="PoP'tan alinan imzali kimlik token'i")
 
 
 @app.post("/poa/checkin")
 def poa_checkin(req: CheckinRequest):
-    """Check-in token'ini dogrular; gecerliyse katilim nisani verir (anti-spoofing acik)."""
+    """Check-in token'ini dogrular; gecerliyse katilim nisani verir (anti-spoofing acik).
+    personhood_token, PoP tarafindan imzalanmis olmalidir (sunucu-tarafli baglama)."""
     try:
-        credential = verify_checkin(req.checkin_token, req.uniqueness_nishani, enforce_defenses=True)
+        credential = verify_checkin(req.checkin_token, req.personhood_token, enforce_defenses=True)
     except CheckinError as e:
         raise HTTPException(status_code=400, detail=f"Check-in reddedildi: {e}")
     return {"message": "Katilim dogrulandi.", "credential": credential}

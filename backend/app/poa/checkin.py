@@ -21,6 +21,7 @@ import time
 import uuid
 
 import jwt  # PyJWT
+from app.pop.issuer import verify_personhood_token, PersonhoodTokenError
 
 _SERVER_SECRET = os.environ.get("MUHUR_SECRET", "dev-only-secret-change-me")
 _ALG = "HS256"
@@ -46,7 +47,7 @@ class CheckinError(Exception):
     pass
 
 
-def verify_checkin(token: str, uniqueness_nishani: str, enforce_defenses: bool = True) -> dict:
+def verify_checkin(token: str, personhood_token: str, enforce_defenses: bool = True) -> dict:
     """
     Check-in token'ını doğrular ve katılım nişanı üretir.
     enforce_defenses=False iken expiry ve tek-kullanım kontrolleri atlanır
@@ -64,6 +65,16 @@ def verify_checkin(token: str, uniqueness_nishani: str, enforce_defenses: bool =
         raise CheckinError("invalid_signature")  # tamper engeli
 
     jti = payload["jti"]
+
+    # --- Faz 4a: PoP -> PoA sunucu-taraflı bağlama ---
+    # Ham nişan yerine PoP'un imzaladığı personhood_token doğrulanır.
+    # Bu, "istemci uydursun" saldırısını kapatır: nişan sunucu tarafında
+    # gerçekten PoP tarafından üretildiği kanıtlanmadan kabul edilmez.
+    try:
+        pop_claims = verify_personhood_token(personhood_token)
+    except PersonhoodTokenError as e:
+        raise CheckinError(str(e))
+    uniqueness_nishani = pop_claims["uniqueness_nishani"]
 
     if enforce_defenses:
         # Replay engeli: nonce daha önce kullanıldı mı?
