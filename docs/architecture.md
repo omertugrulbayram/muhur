@@ -9,4 +9,4 @@ Servisler:
 4. Veritabanı   — SQLite (prototip)
 5. Frontend     — React (Vite) + Tailwind
 
-Mahremiyet ilkesi: TC saklanmaz; yalnızca unlinkable nişan + seçmeli açıklama.
+Mahremiyet ilkesi: TC saklanmaz; yalnızca takma kimlik (pseudonymous HMAC nişanı) + seçmeli açıklama.

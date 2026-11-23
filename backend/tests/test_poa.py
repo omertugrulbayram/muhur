@@ -1,83 +1,125 @@
-"""Faz 2 + Faz 4a testleri — PoA anti-spoofing + PoP-PoA sunucu-tarafli baglama."""
+"""PoA — check-in, replay, organizatör yetkisi, etkinlik penceresi, tek katılım."""
+
 import time
+
 import jwt
+import pytest
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
 from app.config import settings
-from app.poa import checkin as poa
-from app.pop import issuer as pop
-
-NISHANI = "ornek-dogrulanmis-hesap-nisani"
-
-
-def setup_function():
-    poa._used_nonces.clear()
+from app.db import store
+from app.poa.checkin import (
+    AuthorizationError, CheckinError, issue_checkin_challenge, verify_checkin,
+)
+from conftest import make_person
 
 
-def _valid_personhood_token():
-    """Gercek PoP akisindan gecen, imzali bir personhood token uretir."""
-    credential = pop.issue_personhood_credential("test-id", 1999)
-    return pop.issue_personhood_token(credential)
+def _challenge(event="teknofest-2026", org="demo-kulup"):
+    tok, _ = issue_checkin_challenge(event, org)
+    return tok
 
 
-def test_valid_checkin_succeeds():
-    token = poa.issue_checkin_token("teknofest-2026")
-    ptoken = _valid_personhood_token()
-    cred = poa.verify_checkin(token, ptoken, enforce_defenses=True)
-    assert cred["credential_type"] == "ProofOfAttendance"
-    assert cred["bound_to"]  # PoP'tan gelen gercek nisan atanmis
+def test_valid_checkin_returns_signed_attendance():
+    cred, ptok = make_person()
+    r = verify_checkin(_challenge(), ptok)
+    assert r["credential"]["bound_to"] == cred["claims"]["uniqueness_nishani"]
+    assert r["attendance_token"].count(".") == 2
 
 
 def test_replay_is_blocked():
-    token = poa.issue_checkin_token("teknofest-2026")
-    ptoken = _valid_personhood_token()
-    poa.verify_checkin(token, ptoken, enforce_defenses=True)          # 1. giris
-    try:
-        poa.verify_checkin(token, ptoken, enforce_defenses=True)      # replay
-        assert False, "replay engellenmeliydi"
-    except poa.CheckinError as e:
-        assert str(e) == "replay_detected"
+    _, p1 = make_person("1")
+    _, p2 = make_person("2")
+    ch = _challenge()
+    verify_checkin(ch, p1)
+    with pytest.raises(CheckinError, match="replay_detected"):
+        verify_checkin(ch, p2)
 
 
-def test_tampered_token_is_rejected():
-    token = poa.issue_checkin_token("teknofest-2026")
-    forged = token[:-3] + "aaa"
-    ptoken = _valid_personhood_token()
-    try:
-        poa.verify_checkin(forged, ptoken, enforce_defenses=True)
-        assert False, "tamper engellenmeliydi"
-    except poa.CheckinError as e:
-        assert str(e) == "invalid_signature"
+def test_replay_survives_restart():
+    """Kullanılmış QR listesi veritabanında: 'yeniden başlatma' sonrası da reddedilir."""
+    _, p1 = make_person("1")
+    _, p2 = make_person("2")
+    ch = _challenge()
+    verify_checkin(ch, p1)
+    store._initialized_for = None     # süreç yeniden başlamış gibi
+    store.init_db()
+    with pytest.raises(CheckinError, match="replay_detected"):
+        verify_checkin(ch, p2)
 
 
-def test_expired_token_is_rejected():
+def test_same_person_cannot_attend_twice():
+    _, p = make_person()
+    verify_checkin(_challenge(), p)
+    with pytest.raises(CheckinError, match="already_attended"):
+        verify_checkin(_challenge(), p)
+
+
+def test_tampered_challenge_rejected():
+    _, p = make_person()
+    ch = _challenge()
+    with pytest.raises(CheckinError, match="checkin_invalid"):
+        verify_checkin(ch[:-3] + ("aaa" if not ch.endswith("aaa") else "bbb"), p)
+
+
+def test_expired_challenge_rejected():
+    _, p = make_person()
     now = int(time.time())
+    from app.security import keys
     expired = jwt.encode(
-        {"event_id": "e", "jti": "j", "iat": now - 1000, "exp": now - 500},
-        settings.poa_secret, algorithm=settings.alg,
-    )
-    ptoken = _valid_personhood_token()
-    try:
-        poa.verify_checkin(expired, ptoken, enforce_defenses=True)
-        assert False, "expiry engellenmeliydi"
-    except poa.CheckinError as e:
-        assert str(e) == "expired"
+        {"typ": "muhur-checkin-challenge", "iss": settings.poa_issuer,
+         "aud": settings.aud_checkin, "event_id": "teknofest-2026", "jti": "eski",
+         "iat": now - 1000, "exp": now - 500},
+        keys.poa_private_key(), algorithm="EdDSA")
+    with pytest.raises(CheckinError, match="checkin_expired"):
+        verify_checkin(expired, p)
 
 
-def test_forged_personhood_claim_is_rejected():
-    """
-    KRITIK TEST — Faz 4a'nin kapattigi acik:
-    Bir saldirgan, PoP'tan gecmeden, sahte bir nisan icerecek keyfi bir JWT
-    uydurup PoA'ya gonderirse (PoP anahtariyla imzalanmamis), sistem bunu
-    ARTIK KABUL ETMEMELI. Rapor bu acigi 'teknik borc' olarak isaretlemisti.
-    """
-    token = poa.issue_checkin_token("teknofest-2026")
-    # Saldirgan kendi (yanlis) anahtariyla sahte bir personhood token uydurur
-    forged_ptoken = jwt.encode(
-        {"uniqueness_nishani": "sahte-nisan", "over_15": True,
-         "iat": int(time.time()), "exp": int(time.time()) + 600},
-        "saldirganin-uydurma-anahtari", algorithm="HS256",
-    )
-    try:
-        poa.verify_checkin(token, forged_ptoken, enforce_defenses=True)
-        assert False, "sahte personhood token reddedilmeliydi"
-    except poa.CheckinError as e:
-        assert str(e) == "personhood_invalid"
+def test_challenge_forged_with_attacker_key_rejected():
+    """Saldırgan kendi anahtarıyla QR üretemez (eskiden /poa/qr herkese açıktı)."""
+    _, p = make_person()
+    now = int(time.time())
+    forged = jwt.encode(
+        {"typ": "muhur-checkin-challenge", "iss": settings.poa_issuer,
+         "aud": settings.aud_checkin, "event_id": "teknofest-2026", "jti": "x",
+         "iat": now, "exp": now + 60},
+        Ed25519PrivateKey.generate(), algorithm="EdDSA")
+    with pytest.raises(CheckinError, match="checkin_invalid"):
+        verify_checkin(forged, p)
+
+
+def test_only_event_owner_can_issue_challenge():
+    store.create_organizer("baska-kulup", "Başka Kulüp", "baska-anahtar")
+    with pytest.raises(AuthorizationError, match="not_event_owner"):
+        issue_checkin_challenge("teknofest-2026", "baska-kulup")
+
+
+def test_unknown_event_rejected():
+    with pytest.raises(AuthorizationError, match="event_not_found"):
+        issue_checkin_challenge("olmayan-etkinlik", "demo-kulup")
+
+
+def test_closed_event_rejected():
+    now = int(time.time())
+    store.create_event("gecmis-etkinlik", "demo-kulup", "Geçmiş", now - 7200, now - 3600)
+    with pytest.raises(AuthorizationError, match="event_not_open"):
+        issue_checkin_challenge("gecmis-etkinlik", "demo-kulup")
+
+
+def test_forged_personhood_rejected_at_checkin():
+    now = int(time.time())
+    forged_ptok = jwt.encode(
+        {"typ": "muhur-personhood", "iss": settings.pop_issuer, "aud": settings.aud_personhood,
+         "sub": "sahte", "verified_human": True, "iat": now, "exp": now + 600, "jti": "j"},
+        Ed25519PrivateKey.generate(), algorithm="EdDSA")
+    with pytest.raises(CheckinError, match="personhood_invalid"):
+        verify_checkin(_challenge(), forged_ptok)
+
+
+def test_failed_checkin_does_not_consume_or_record():
+    """Personhood geçersizse QR tüketilmez ve katılım yazılmaz."""
+    _, good = make_person()
+    ch = _challenge()
+    with pytest.raises(CheckinError):
+        verify_checkin(ch, "bozuk.token.degeri")
+    r = verify_checkin(ch, good)          # aynı QR hâlâ kullanılabilir
+    assert r["credential"]["event_id"] == "teknofest-2026"

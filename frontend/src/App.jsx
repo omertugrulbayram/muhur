@@ -77,7 +77,7 @@ function LoginScreen({ onEdevlet }) {
             arkasında <b className="text-white">kanıtlanmış gerçek bir insan</b> olduğunu görebilirsin.
           </p>
           <div className="mt-8 flex flex-wrap gap-2 text-xs">
-            {["Kronolojik akış", "Kara kutu yok", "Mühürlü kimlik", "KVKK uyumlu"].map((t) => (
+            {["Kronolojik akış", "Kara kutu yok", "Mühürlü kimlik", "TC saklanmaz"].map((t) => (
               <span key={t} className="px-3 py-1 rounded-full bg-white/10 ring-1 ring-white/15">{t}</span>
             ))}
           </div>
@@ -107,7 +107,7 @@ function LoginScreen({ onEdevlet }) {
             <span className="text-trust-high mt-0.5">✓</span>
             <span>
               TC kimlik numaran <b>hiçbir yere kaydedilmez</b> — yalnızca geri döndürülemez,
-              ilişkilendirilemez bir benzersizlik nişanına çevrilir.
+              tek yönlü bir takma kimliğe (benzersizlik nişanına) çevrilir.
             </span>
           </div>
 
@@ -195,21 +195,61 @@ function EDevletModal({ onSuccess, onClose }) {
    ============================================================ */
 const SEED = [
   { name: "Zeynep Kaya", handle: "zeynepk", sealed: true, nid: "aa1", year: 1998,
-    events: ["teknofest-2026"], baseSybil: 0.03,
+    events: ["teknofest-2026"], demoRisk: 0.03,
     text: "TEKNOFEST'te sahada gördüklerim inanılmazdı. Genç mühendislerin enerjisi ayrı 🚀" },
   { name: "Gündem Sesi", handle: "gundem_sesi_44", sealed: true, nid: "cc3", year: 1995,
-    events: [], baseSybil: 0.28, campaign: true,
+    events: [], demoRisk: 0.28, campaign: true,
     text: "HERKES BUNU PAYLAŞSIN!! Gündemi biz belirleriz, ses çıkaralım 🔁🔁 #manşet #yükselt" },
   { name: "Mehmet Aydın", handle: "mehmeta", sealed: true, nid: "bb2", year: 1990,
-    events: [], baseSybil: 0.06,
+    events: [], demoRisk: 0.06,
     text: "Yeni yazı dizim: yerli teknoloji ekosistemi nasıl büyüyor? İlk bölüm yolda." },
   { name: "trend yukselt", handle: "trend_yukselt_x", sealed: false, year: null,
-    events: [], baseSybil: 0.72, campaign: true,
+    events: [], demoRisk: 0.72, campaign: true,
     text: "gündem gündem gündem paylaş paylaş 🔁 #manşet #yükselt link: bit.ly/xxxx" },
   { name: "yeni kullanıcı", handle: "newbie_909", sealed: false, year: null,
-    events: [], baseSybil: 0.35,
+    events: [], demoRisk: 0.35,
     text: "merhaba, NSosyal'e yeni katıldım 👋" },
 ];
+
+/* Demo hesaplar: her tarayıcıya özel bir ek alır (aynı kişi aynı etkinliğe iki kez
+   katılamadığı için) ve katılım kanıtları tarayıcıda saklanır. */
+const DEMO_SEED_KEY = "muhur-demo-seed";
+const DEMO_TOKENS_KEY = "muhur-demo-attendance";
+const DEMO_RISK_NOTE = "DEMO: elle girilmiş değer — model bağlanınca kalkacak";
+
+function demoSeed() {
+  let s = localStorage.getItem(DEMO_SEED_KEY);
+  if (!s) { s = Math.random().toString(36).slice(2, 10); localStorage.setItem(DEMO_SEED_KEY, s); }
+  return s;
+}
+
+async function sealDemoAccount(a) {
+  const seed = demoSeed();
+  const r = await api.popVerify(`${a.nid}-${seed}`, a.year);
+  const saved = JSON.parse(localStorage.getItem(DEMO_TOKENS_KEY) || "{}");
+  const attendance = [];
+  for (const ev of a.events) {
+    const key = `${seed}:${a.handle}:${ev}`;
+    if (!saved[key]) {
+      try {
+        const q = await api.poaChallenge(ev);
+        const c = await api.poaCheckin(q.checkin_token, r.personhood_token);
+        saved[key] = c.attendance_token;
+      } catch (e) {
+        if (e.status !== 409) throw e;   // zaten katılmış ama kanıt kaybolmuş
+      }
+    }
+    if (saved[key]) attendance.push(saved[key]);
+  }
+  localStorage.setItem(DEMO_TOKENS_KEY, JSON.stringify(saved));
+  return { token: r.personhood_token, attendance };
+}
+
+const UNSEALED_RESULT = {
+  trust_score: 0, band: "low",
+  axes: { identity: 0, authenticity: 1 },
+  explanation: ["Kanıtlanmış insan (PoP) token'ı yok — hesap mühürsüz."],
+};
 
 function NSosyalApp({ user }) {
   const [authors, setAuthors] = useState(null);
@@ -224,24 +264,21 @@ function NSosyalApp({ user }) {
     let alive = true;
     (async () => {
       try {
-        const ur = await api.trustScore(user.credential, [], 0.02);
+        const ur = await api.trustScore(user.token, []);
         if (alive) setUserResult(ur);
       } catch {}
       const map = {};
       for (const a of SEED) {
-        let cred = null, poas = [];
-        if (a.sealed) {
-          const r = await api.popVerify(a.nid, a.year);
-          cred = r.credential;
-          for (const ev of a.events) {
-            const q = await api.poaQr(ev);
-            const c = await api.poaCheckin(q.checkin_token, r.personhood_token);
-            poas.push(c.credential);
-          }
+        if (!a.sealed) {
+          // Mühürsüz hesap: PoP token'ı yok, sunucuya sorulacak bir kanıt da yok.
+          map[a.handle] = { sealed: false, result: UNSEALED_RESULT };
+          continue;
         }
-        cache.current[a.handle] = { cred, poas };
-        const result = await api.trustScore(cred, poas, a.baseSybil);
-        map[a.handle] = { sealed: a.sealed, result };
+        const p = await sealDemoAccount(a);
+        cache.current[a.handle] = p;
+        await api.demoRisk(p.token, a.demoRisk, DEMO_RISK_NOTE);
+        const result = await api.trustScore(p.token, p.attendance);
+        map[a.handle] = { sealed: true, result };
       }
       if (alive) setAuthors(map);
     })();
@@ -253,11 +290,11 @@ function NSosyalApp({ user }) {
     if (!authors) return;
     const upd = { ...authors };
     for (const a of SEED) {
-      if (!a.campaign) continue;
-      const { cred, poas } = cache.current[a.handle];
-      const s = next ? 0.9 : a.baseSybil;
-      const result = await api.trustScore(cred, poas, s);
-      upd[a.handle] = { sealed: a.sealed, result };
+      if (!a.campaign || !a.sealed) continue;
+      const p = cache.current[a.handle];
+      await api.demoRisk(p.token, next ? 0.9 : a.demoRisk, DEMO_RISK_NOTE);
+      const result = await api.trustScore(p.token, p.attendance);
+      upd[a.handle] = { sealed: true, result };
     }
     setAuthors(upd);
   }
@@ -360,7 +397,7 @@ function NSosyalApp({ user }) {
       </main>
 
       <footer className="max-w-2xl mx-auto px-4 py-6 text-[11px] text-ink-soft font-mono border-t border-hair">
-        mock issuer · e-Devlet entegrasyonu YOK · güven skorları canlı backend'den · TEKNOFEST 2026
+        mock issuer · e-Devlet entegrasyonu YOK · güven skorları canlı backend'den (Ed25519 imzalı token) · örnek hesapların risk değerleri DEMO, elle girilmiş
       </footer>
     </div>
   );

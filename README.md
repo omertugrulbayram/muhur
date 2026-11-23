@@ -10,7 +10,7 @@
 [![Durum](https://img.shields.io/badge/durum-prototip%20aktif-2ea44f?style=for-the-badge)](#-proje-durumu)
 [![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](#-teknoloji-yığını)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi&logoColor=white)](#-teknoloji-yığını)
-[![Testler](https://img.shields.io/badge/testler-8%2F8%20geçti-2ea44f?style=for-the-badge)](#-test)
+[![Testler](https://img.shields.io/badge/testler-62%2F62%20geçti-2ea44f?style=for-the-badge)](#-test)
 [![Lisans](https://img.shields.io/badge/lisans-belirtilecek-lightgrey?style=for-the-badge)](#-lisans)
 
 <br>
@@ -58,7 +58,7 @@ güven katmanıdır. İki temel doğrulamaya dayanır:
 
 | | |
 |---|---|
-| 🧬 **PoP** — *Proof of Personhood* | Hesabın arkasında kanıtlanmış, benzersiz, gerçek bir insan olduğunu doğrular. TC kimlik **saklanmaz** — yalnızca geri döndürülemez, ilişkilendirilemez bir *"benzersizlik nişanı"* tutulur. |
+| 🧬 **PoP** — *Proof of Personhood* | Hesabın arkasında kanıtlanmış, benzersiz, gerçek bir insan olduğunu doğrular. TC kimlik **saklanmaz** — yalnızca tek yönlü HMAC ile üretilmiş bir takma kimlik (*"benzersizlik nişanı"*) tutulur. |
 | 📍 **PoA** — *Proof of Attendance* | Gerçek bir etkinliğe (TEKNOFEST vb.) fiziksel katılımı, sahtelenmeye dirençli kriptografik bir nişana çevirir. |
 
 Bunun üzerine kurulu **Sybil/CIB tespit modeli**, sahte hesap ağlarını ve koordineli
@@ -119,16 +119,16 @@ Aşağıdaki sonuçlar **uydurma değildir** — bu repodaki kod çalıştırıl
 
 </div>
 
-| Katman | Teknoloji | Amaç |
+| Katman | Teknoloji | Durum |
 |---|---|---|
-| Backend | FastAPI + Pydantic | API, şema doğrulama |
-| Veritabanı | SQLite + SQLAlchemy | Prototip veri katmanı |
-| Kimlik (PoP) | SD-JWT · PyJWT · HMAC-SHA256 | Unlinkable, mahremiyet-koruyan nişan |
-| Katılım (PoA) | qrcode · imzalı nonce (JWT) | Sahtelenmeye dirençli check-in |
-| Yapay Zekâ | scikit-learn/XGBoost · PyTorch Geometric (GraphSAGE) | Sybil/CIB tespiti |
-| Türkçe NLP | HuggingFace Transformers (yerli model) | Spam/koordineli metin sınıflandırma |
-| Ön Yüz | React (Vite) + Tailwind | Kullanıcı arayüzü |
-| Test | pytest | Anti-spoofing ve mahremiyet garantileri |
+| Backend | FastAPI + Pydantic (bilinmeyen alanlar reddedilir) | ✅ çalışıyor |
+| Veritabanı | SQLite (kullanılmış QR'lar, katılımlar, organizatörler, risk kayıtları) | ✅ çalışıyor |
+| Kimlik (PoP) | PyJWT · **Ed25519** imza · HMAC-SHA256 takma kimlik | ✅ çalışıyor (issuer simülasyon) |
+| Katılım (PoA) | Ed25519 imzalı tek kullanımlık QR + imzalı katılım kanıtı | ✅ çalışıyor |
+| Yapay Zekâ | scikit-learn Gradient Boosting · networkx | 🟡 sentetik veride, arayüze henüz bağlı değil |
+| Ön Yüz | React (Vite) + Tailwind | ✅ çalışıyor |
+| Test | pytest (62 test) + saldırı koşumu (15 saldırı) | ✅ |
+| Planlanan | GraphSAGE (GNN), Türkçe metin benzerliği | ❌ henüz yok |
 
 ## 🚀 Kurulum ve Çalıştırma (Windows)
 
@@ -145,44 +145,50 @@ Sonra tarayıcıda aç:
 - 📘 API dokümantasyonu → `http://127.0.0.1:8000/docs`
 - 💓 Sağlık kontrolü → `http://127.0.0.1:8000/health`
 
-## 🔌 API Uçları
+## 🔌 API Uçları (v0.4)
 
-| Yöntem | Uç | Açıklama |
-|---|---|---|
-| `GET` | `/health` | Servisin ayakta olduğunu doğrular |
-| `POST` | `/pop/verify` | Kimlik doğrulama (simülasyon) → unlinkable nişan döner |
-| `POST` | `/poa/qr` | Etkinlik için kısa ömürlü, imzalı check-in QR'ı üretir |
-| `POST` | `/poa/checkin` | QR'ı doğrular; geçerliyse katılım nişanı verir |
+| Yöntem | Uç | Yetki | Açıklama |
+|---|---|---|---|
+| `GET` | `/health` | — | Servis durumu |
+| `GET` | `/.well-known/muhur-keys` | — | Açık anahtarlar (JWKS): herkes token'ları bağımsız doğrulayabilir |
+| `POST` | `/pop/verify` | — | Kimlik doğrulama (simülasyon) → Ed25519 imzalı personhood token |
+| `GET/POST` | `/organizer/events` | organizatör | Etkinlikleri listele / oluştur |
+| `POST` | `/poa/challenge` | organizatör | Kendi açık etkinliği için 90 sn'lik tek kullanımlık QR |
+| `POST` | `/poa/checkin` | — | QR + personhood token → imzalı katılım kanıtı (kişi başına etkinlik başına 1) |
+| `POST` | `/trust/score` | — | Yalnız imzalı token'larla çalışır; risk değeri sunucudan gelir |
+| `POST` | `/demo/risk` | organizatör | **SİMÜLASYON:** model bağlanana kadar elle risk değeri (yalnız demo modunda) |
+
+Organizatör yetkisi `X-Organizer-Key` başlığıyla verilir. Anahtarlar veritabanında
+SHA-256 özeti olarak saklanır. Geliştirme ortamında demo kulübün anahtarı
+`demo-kulup-anahtari`'dır.
 
 ## 🧪 Test
 
 ```powershell
 cd backend
-pytest
+.venv\Scripts\python -m pytest -q
 ```
 
 ```
-tests\test_poa.py ....                                       [ 50%]
-tests\test_pop.py ....                                        [100%]
-================== 8 passed ==================
+62 passed
 ```
 
-Testler; **replay, tamper, expiry** saldırılarının reddedildiğini ve PoP'un
-kimlik bilgisini **asla saklamadığını** doğrular.
+Testler; sahte imza, `alg=none`, algoritma karıştırma, yanlış issuer/audience/tür,
+süresi dolmuş token, replay (sunucu yeniden başladıktan sonra dahil), çift
+katılım, başkasının kanıtını kullanma, yetkisiz QR üretme, istemcinin risk
+değeri göndermesi, CORS ve istek sınırını kapsar. TC kimlik numarasının hiçbir
+çıktıda ve veritabanı dosyasında bulunmadığı da test edilir.
 
-## ⚔️ Saldırı Koşumu (Anti-Spoofing Kanıtı)
+## ⚔️ Saldırı Koşumu
 
 ```powershell
-python -m attack_harness.replay_attack
+backend\.venv\Scripts\python attack_harness\replay_attack.py
+eplay_attack.py
 ```
 
-```
-  Saldırı                         Önlem ÖNCESİ    Önlem SONRASI
-  ------------------------------------------------------------
-  Replay (QR tekrar okutma)       BAŞARILI        engellendi
-  Tamper (sahte imza)             engellendi      engellendi
-  Expiry (süresi dolmuş QR)       BAŞARILI        engellendi
-```
+Gerçek HTTP API'ye karşı 15 saldırı dener. Sonuç (2026-11-24): **15/15 engellendi.**
+Ayrıntı: [`docs/threat_model.md`](docs/threat_model.md) · Gerçek/demo ayrımı:
+[`docs/durum_tablosu.md`](docs/durum_tablosu.md)
 
 ## 📁 Proje Yapısı
 
@@ -190,11 +196,12 @@ python -m attack_harness.replay_attack
 muhur/
 ├── backend/
 │   └── app/
-│       ├── pop/          # Proof-of-Personhood — mock issuer, unlinkable nişan
+│       ├── pop/          # Proof-of-Personhood — mock issuer, takma kimlik, Ed25519
+│       ├── security/     # anahtarlar, token imzalama/doğrulama, istek sınırı
+│       ├── db/           # SQLite kayıtları
 │       ├── poa/          # Proof-of-Attendance — QR + anti-spoofing
 │       ├── ml/           # Sybil/CIB tespit modeli + sentetik veri
-│       ├── trust/        # Güven grafiği + itibar motoru
-│       ├── discovery/    # Şeffaf keşif katmanı
+│       ├── trust/        # Güven puanı (saf formül + token doğrulayan servis)
 │       └── main.py       # FastAPI giriş noktası
 ├── attack_harness/       # Saldırı simülasyon scriptleri
 ├── docs/                 # Mimari, tehdit modeli, benchmark, görseller
@@ -203,13 +210,15 @@ muhur/
 
 ## 🗺️ Yol Haritası
 
-- [x] PoP — mock issuer, unlinkable kimlik doğrulama
-- [x] PoA — anti-spoofing check-in (replay/tamper/expiry engelleri)
-- [x] Sybil/CIB baseline model (Gradient Boosting) + benchmark
+- [x] PoP — mock issuer, takma kimlik, Ed25519 imzalı token
+- [x] PoA — organizatör yetkili, tek kullanımlık QR; kalıcı replay listesi; etkinlik başına tek katılım
+- [x] Sybil/CIB baseline model (Gradient Boosting) + benchmark (sentetik)
+- [x] Güven puanı — sunucu tarafında, yalnız imzalı kanıtlarla
+- [ ] Modelin API'ye ve arayüze bağlanması, açıklanabilir uyarılar
+- [ ] Topluluk yöneticisi paneli (şüpheli kümeler, ağ grafiği, insan incelemesi)
+- [ ] Zor normal senaryolarla test, yanlış pozitif raporu
 - [ ] GraphSAGE (GNN) ile karşılaştırma
-- [ ] Güven grafiği + itibar motoru
-- [ ] Şeffaf keşif katmanı ("Neden bunu görüyorum?")
-- [ ] Gerçek millî e-Devlet / dijital rozet altyapısına canlı entegrasyon
+- [ ] Gerçek e-Devlet / dijital kimlik altyapısına entegrasyon
 
 ## 👥 Ekip
 

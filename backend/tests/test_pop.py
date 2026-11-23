@@ -1,44 +1,40 @@
-"""
-Faz 1 testleri — özellikle PoP mahremiyet garantileri.
-Çalıştırma (backend/ klasöründen):  pytest
-"""
+"""PoP — mahremiyet garantileri (HTTP üzerinden)."""
 
-from fastapi.testclient import TestClient
-
-from app.main import app
-from app.pop.issuer import uniqueness_nishani
-
-client = TestClient(app)
+from app.pop.issuer import pseudonymous_subject
 
 
-def test_health():
+def test_health(client):
     r = client.get("/health")
     assert r.status_code == 200
     assert r.json()["status"] == "ok"
+    assert r.json()["signing"] == "EdDSA"
 
 
-def test_pop_verify_returns_credential():
-    r = client.post("/pop/verify", json={"national_id": "12345678901", "birth_year": 2000})
+def test_pop_verify_returns_signed_token(client):
+    r = client.post("/pop/verify", json={"national_id": "12345678901", "birth_date": "2000-01-01"})
     assert r.status_code == 200
-    cred = r.json()["credential"]
-    assert cred["claims"]["verified_human"] is True
-    assert cred["simulated"] is True
+    body = r.json()
+    assert body["credential"]["claims"]["verified_human"] is True
+    assert body["credential"]["simulated"] is True
+    assert body["personhood_token"].count(".") == 2
 
 
-def test_nishani_is_deterministic_and_unlinkable():
-    # Aynı kişi -> aynı nişan (Sybil engeli)
-    a = uniqueness_nishani("12345678901")
-    b = uniqueness_nishani("12345678901")
-    assert a == b
-    # Nişan, ham TC kimliği İÇERMEZ (geri-döndürülemezlik göstergesi)
+def test_pseudonym_is_deterministic_and_one_way():
+    a = pseudonymous_subject("12345678901")
+    assert a == pseudonymous_subject("12345678901")      # aynı kişi → aynı değer
+    assert a != pseudonymous_subject("12345678902")
     assert "12345678901" not in a
-    assert len(a) == 64  # SHA-256 hex
+    assert len(a) == 64
 
 
-def test_over_15_selective_disclosure():
+def test_over_15_selective_disclosure(client):
     young = client.post("/pop/verify", json={"national_id": "1", "birth_year": 2020}).json()
     old = client.post("/pop/verify", json={"national_id": "2", "birth_year": 1990}).json()
-    # Yalnızca boolean açıklanır; doğum yılı credential'da YER ALMAZ
     assert young["credential"]["claims"]["over_15"] is False
     assert old["credential"]["claims"]["over_15"] is True
     assert "birth_year" not in old["credential"]["claims"]
+
+
+def test_bad_birth_date_is_422(client):
+    r = client.post("/pop/verify", json={"national_id": "1", "birth_date": "dun"})
+    assert r.status_code == 422
