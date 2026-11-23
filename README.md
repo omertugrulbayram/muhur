@@ -1,23 +1,32 @@
 <div align="center">
 
-# 🛡️ NSosyal MÜHÜR
+# 🛡️ NSosyal MÜHÜR · SEAL
 
-### Kanıtlanmış Gerçek İnsan · Kanıtlanmış Gerçek Katılım
-### Güven, Otantiklik ve Şeffaf Keşif Katmanı
+### Gerçek insanlar. Gerçek katılım. Şeffaf güven.
 
-**TEKNOFEST 2026 — NSosyal İnovasyon Yarışması** · İnovasyon Dikeyi: *Sosyal Yapay Zekâ*
+Topluluk platformları için güven katmanı: hesabın arkasında **gerçek bir insan** olduğunu ve
+etkinliklere **gerçekten katıldığını** kanıtlar; koordineli kampanyaları **nedenleriyle** topluluk
+yöneticisine gösterir. Kimseyi otomatik olarak suçlamaz — **son karar her zaman insandadır.**
 
-[![Durum](https://img.shields.io/badge/durum-prototip%20aktif-2ea44f?style=for-the-badge)](#-proje-durumu)
-[![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](#-teknoloji-yığını)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi&logoColor=white)](#-teknoloji-yığını)
-[![Testler](https://img.shields.io/badge/testler-74%2F74%20geçti-2ea44f?style=for-the-badge)](#-test)
-[![Lisans](https://img.shields.io/badge/lisans-belirtilecek-lightgrey?style=for-the-badge)](#-lisans)
+**TEKNOFEST 2026 — NSosyal İnovasyon** · **NFTE World Series of Innovation**
+
+[![Rapor](https://img.shields.io/badge/📄_geliştirme_raporu-Kasım_2026-e0223d?style=for-the-badge)](https://omertugrulbayram.github.io/muhur/)
+[![Testler](https://img.shields.io/badge/testler-74%2F74%20geçti-2ea44f?style=for-the-badge)](#-test-ve-saldırı-koşumu)
+[![Saldırılar](https://img.shields.io/badge/saldırı_koşumu-15%2F15%20engellendi-2ea44f?style=for-the-badge)](#-test-ve-saldırı-koşumu)
+
+![Python](https://img.shields.io/badge/-Python_3.11+-3776AB?style=flat-square&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/-FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/-React_+_Vite-61DAFB?style=flat-square&logo=react&logoColor=black)
+![scikit-learn](https://img.shields.io/badge/-scikit--learn-F7931E?style=flat-square&logo=scikitlearn&logoColor=white)
+![Ed25519](https://img.shields.io/badge/-Ed25519_imza-15181c?style=flat-square)
+![SQLite](https://img.shields.io/badge/-SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)
 
 <br>
 
-> ⚠️ **Dürüstlük notu:** Kimlik doğrulama akışı bir **SİMÜLASYONDUR** (mock issuer).
-> Gerçek e-Devlet entegrasyonu yoktur. Sistem, standart-uyumlu, bağımsız çalışan
-> bir **referans uygulamadır.**
+<img src="docs/img/1_acilis.png" width="900" alt="MÜHÜR açılış sayfası">
+
+> ⚠️ **Dürüstlük notu:** Kimlik doğrulama bir **simülasyondur** (gerçek e-Devlet entegrasyonu yoktur).
+> Tüm kullanıcı verisi **sentetiktir**. Aşağıdaki rakamların hepsi bu depodaki kod çalıştırılarak üretilmiştir.
 
 </div>
 
@@ -25,261 +34,263 @@
 
 ## 📖 İçindekiler
 
-- [Problem](#-problem)
-- [Çözüm — MÜHÜR](#-çözüm--mühür)
-- [Sistem Mimarisi](#-sistem-mimarisi)
-- [Öne Çıkan Sonuçlar](#-öne-çıkan-sonuçlar)
-- [Teknoloji Yığını](#-teknoloji-yığını)
-- [Kurulum ve Çalıştırma](#-kurulum-ve-çalıştırma-windows)
-- [API Uçları](#-api-uçları)
-- [Test](#-test)
-- [Saldırı Koşumu (Anti-Spoofing Kanıtı)](#-saldırı-koşumu-anti-spoofing-kanıtı)
-- [Proje Yapısı](#-proje-yapısı)
-- [Yol Haritası](#-yol-haritası)
-- [Ekip](#-ekip)
+- [Tek tıkla çalıştır](#️-tek-tıkla-çalıştır)
+- [Problem ve çözüm](#-problem-ve-çözüm)
+- [Dört aşama](#-dört-aşama)
+- [Ekranlar](#️-ekranlar)
+- [Sonuçlar](#-sonuçlar)
+- [Güvenlik](#-güvenlik)
+- [Ne gerçek, ne demo?](#-ne-gerçek-ne-demo)
+- [Test ve saldırı koşumu](#-test-ve-saldırı-koşumu)
+- [Geliştirici notları](#-geliştirici-notları)
+- [Proje yapısı](#-proje-yapısı)
+- [Yol haritası](#️-yol-haritası)
 
 ---
 
-## 🎯 Problem
+## ▶️ Tek tıkla çalıştır
 
-Sosyal medya platformlarının ortak yapısal açığı: **bir hesabın arkasında gerçekten
-benzersiz bir insan olup olmadığının doğrulanamaması** — kısaca *"kimliksizlik açığı"*.
+**Windows:** `BASLAT.bat` dosyasına çift tıkla. İlk seferde Python ortamını kurar ve arayüzü derler,
+sonra tarayıcıda **http://127.0.0.1:8000** açılır. Site ve API aynı adresten sunulur.
 
-Bu açık; botların gündemi yapay biçimde şekillendirmesine, koordineli kampanyalarla
-bir fikrin veya kişinin sabote edilmesine ve platformun *"gerçeklik"* vaadinin
-söylemde kalmasına yol açar. NSosyal, kendisini **"gerçek insanların, manipülasyondan
-uzak, temiz alanı"** olarak konumlandırdığından, bu açık NSosyal için doğrudan
-**varoluşsal bir tehdittir.**
-
-## 💡 Çözüm — MÜHÜR
-
-**NSosyal MÜHÜR**, bu vaadi bir slogandan çıkarıp **teknik olarak icra eden** bir
-güven katmanıdır. İki temel doğrulamaya dayanır:
-
-| | |
-|---|---|
-| 🧬 **PoP** — *Proof of Personhood* | Hesabın arkasında kanıtlanmış, benzersiz, gerçek bir insan olduğunu doğrular. TC kimlik **saklanmaz** — yalnızca tek yönlü HMAC ile üretilmiş bir takma kimlik (*"benzersizlik nişanı"*) tutulur. |
-| 📍 **PoA** — *Proof of Attendance* | Gerçek bir etkinliğe (TEKNOFEST vb.) fiziksel katılımı, sahtelenmeye dirençli kriptografik bir nişana çevirir. |
-
-Bunun üzerine kurulu **Sybil/CIB tespit modeli**, sahte hesap ağlarını ve koordineli
-manipülasyonu yapay zekâ ile yakalar; **şeffaf keşif katmanı** ise her içerik için
-*"Neden bunu görüyorum?"* açıklaması sunar — gizli algoritma yok, kara kutu yok.
-
-## 🏗️ Sistem Mimarisi
-
-<div align="center">
-<img src="docs/architecture_diagram.png" width="480" alt="MÜHÜR sistem mimarisi">
-<br>
-<sub><b>Zincir:</b> kanıtlanmış insan → kanıtlanmış katılım → manipülasyona dirençli güven → şeffaf keşif</sub>
-</div>
-
-Sistem, birbirinden bağımsız çalışabilen servislerden oluşur — bu sayede NSosyal'in
-kapalı geliştirici API'sine bağımlı olmadan, **bağımsız ve entegrasyona hazır bir
-referans uygulama** olarak çalışır.
-
-## 📊 Öne Çıkan Sonuçlar
-
-Aşağıdaki sonuçlar **uydurma değildir** — bu repodaki kod çalıştırılarak üretilmiştir.
-
-<table>
-<tr>
-<td width="50%" align="center">
-<img src="docs/benchmark_chart.png" width="100%"><br>
-<sub><b>Ağ sinyalinin katkısı:</b> ağ öznitelikleri çıkarıldığında<br>Recall <code>1.000 → 0.556</code> düşer.</sub>
-</td>
-<td width="50%" align="center">
-<img src="docs/antispoofing_chart.png" width="100%"><br>
-<sub><b>Anti-spoofing:</b> önlemler açıkken<br>tüm saldırılar (<code>replay</code>, <code>tamper</code>, <code>expiry</code>) engellenir.</sub>
-</td>
-</tr>
-</table>
-
-| Model (Sybil/CIB — Gradient Boosting baseline) | Precision | Recall | F1 | AUC |
-|---|:---:|:---:|:---:|:---:|
-| **Tüm öznitelikler** (bireysel + ağ) | 0.978 | **1.000** | **0.989** | **0.998** |
-| Yalnızca bireysel (ablasyon) | 0.962 | 0.556 | 0.704 | 0.866 |
-
-> 5-kat çapraz doğrulama F1: **0.973** · Sentetik benchmark, 1000 hesap, %15 koordineli bot
-> (gizlenen + yalnız-kurt botlar dahil), %30 görülmeyen test kümesi.
-
-## 🧰 Teknoloji Yığını
-
-<div align="center">
-
-![Python](https://img.shields.io/badge/-Python-3776AB?style=flat-square&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/-FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)
-![SQLAlchemy](https://img.shields.io/badge/-SQLAlchemy-D71F00?style=flat-square)
-![PyJWT](https://img.shields.io/badge/-PyJWT-000000?style=flat-square)
-![scikit--learn](https://img.shields.io/badge/-scikit--learn-F7931E?style=flat-square&logo=scikitlearn&logoColor=white)
-![NetworkX](https://img.shields.io/badge/-NetworkX-1a1a1a?style=flat-square)
-![PyTorch](https://img.shields.io/badge/-PyTorch-EE4C2C?style=flat-square&logo=pytorch&logoColor=white)
-![HuggingFace](https://img.shields.io/badge/-HuggingFace-FFD21E?style=flat-square&logo=huggingface&logoColor=black)
-![React](https://img.shields.io/badge/-React-61DAFB?style=flat-square&logo=react&logoColor=black)
-![pytest](https://img.shields.io/badge/-pytest-0A9EDC?style=flat-square&logo=pytest&logoColor=white)
-
-</div>
-
-| Katman | Teknoloji | Durum |
-|---|---|---|
-| Backend | FastAPI + Pydantic (bilinmeyen alanlar reddedilir) | ✅ çalışıyor |
-| Veritabanı | SQLite (kullanılmış QR'lar, katılımlar, organizatörler, risk kayıtları) | ✅ çalışıyor |
-| Kimlik (PoP) | PyJWT · **Ed25519** imza · HMAC-SHA256 takma kimlik | ✅ çalışıyor (issuer simülasyon) |
-| Katılım (PoA) | Ed25519 imzalı tek kullanımlık QR + imzalı katılım kanıtı | ✅ çalışıyor |
-| Yapay Zekâ | scikit-learn: açıklanabilir lojistik regresyon (küme düzeyinde koordinasyon), TF-IDF | ✅ arayüze bağlı · 🟡 yalnız sentetik veride ölçüldü |
-| Ön Yüz | React (Vite) + Tailwind | ✅ çalışıyor |
-| Test | pytest (74 test) + saldırı koşumu (15 saldırı) | ✅ |
-| Planlanan | GraphSAGE (GNN), Türkçe metin benzerliği | ❌ henüz yok |
-
-> 📄 **Geliştirme raporu (Kasım 2026):** https://omertugrulbayram.github.io/muhur/
-
-## ▶️ Tek tıkla çalıştır (Windows)
-
-`BASLAT.bat` dosyasına çift tıkla. İlk seferde Python ortamını kurar ve arayüzü
-derler, sonra tarayıcıda **http://127.0.0.1:8000** açılır. Site ve API aynı
-adresten sunulur.
+Gereken: **Python 3.11+** ve **Node.js 18+**.
 
 | Sayfa | Adres | Ne var? |
 |---|---|---|
 | Açılış | `/#/` | Dört aşama, rakamlar, ne gerçek / ne demo |
 | Kullanıcı demosu | `/#/demo` | ① e-Devlet (simülasyon) ile mühür → ② QR ile etkinliğe katılım + replay saldırısını deneme → ③ akış ve güven gerekçeleri |
-| Topluluk paneli | `/#/panel` | Uyarılar, nedenler, masum açıklamalar, ağ grafiği, insan incelemesi, model kartı |
+| Topluluk paneli | `/#/panel` | Uyarılar, nedenler, olası masum açıklamalar, ağ grafiği, insan incelemesi, model kartı |
 
-Gereken: Python 3.11+ ve Node.js 18+.
+Kayıt gerekmez; tüm akış yaklaşık iki dakika sürer.
 
-## 🚀 Kurulum ve Çalıştırma (Windows)
+---
+
+## 🎯 Problem ve çözüm
+
+Sosyal platformların ortak açığı: bir hesabın arkasında **gerçekten benzersiz bir insan** olup olmadığı
+doğrulanamıyor. Bu açık; bot ağlarının, satın alınmış hesapların ve **para karşılığı kampanyaya katılan
+gerçek kişilerin** gündemi yapay biçimde şekillendirmesine yol açıyor.
+
+Ama "şüpheli görünen" her şey kötü niyetli değil: aynı etkinlikten dönen onlarca öğrenci benzer şeyler yazar,
+kulüp üyeleri duyuruyu birebir kopyalar, sınav gecesi herkes aynı dersten bahseder. **Basit bir kural bunları
+da suçlar.** MÜHÜR'ün farkı: kanıtlanmış kimlik ve katılımı, açıklanabilir bir modelle ve insan kararıyla
+birleştirmesi.
+
+## 🧩 Dört aşama
+
+| | Aşama | Ne yapar? | Nasıl? |
+|:---:|---|---|---|
+| 1 | **Kanıtlanmış insan** (PoP) | Hesabın arkasında gerçek ve tek bir kişi olduğunu bir kez doğrular | TC saklanmaz; tek yönlü HMAC takma kimlik + "15 yaş üstü" bilgisi; Ed25519 imzalı token |
+| 2 | **Kanıtlanmış katılım** (PoA) | Etkinliğe fiziksel katılımı kişiye bağlı, imzalı bir kanıta çevirir | Yalnız organizatörün üretebildiği 90 sn'lik, tek kullanımlık QR |
+| 3 | **Koordinasyon tespiti** (AI) | Kısa sürede benzer şeyler paylaşan hesap gruplarını bulur | Küme düzeyinde açıklanabilir model; her uyarıda neden + olası masum açıklama |
+| 4 | **Son karar insanda** | Yönetici uyarıyı inceler: *sorun yok / izle / işaretle* | Kalıcı inceleme kaydı; güven puanını istemci değiştiremez |
+
+---
+
+## 🖼️ Ekranlar
+
+### Kullanıcı demosu — QR ile etkinliğe katılım ve saldırıyı kendin dene
+
+<table>
+<tr>
+<td width="50%"><img src="docs/img/4_qr.png" alt="QR ile katılım"><br>
+<sub><b>② Etkinliğe katılım:</b> kulübün imzaladığı gerçek QR, 90 saniyelik geri sayım. Okutunca güven puanı <code>0.65 → 0.83</code>.</sub></td>
+<td width="50%"><img src="docs/img/5_replay.png" alt="Replay saldırısı reddedildi"><br>
+<sub><b>"Saldırıyı sen dene":</b> aynı QR'ı ikinci kez okutunca sunucu <code>replay_detected</code> ile reddeder — sunucu yeniden başlasa bile.</sub></td>
+</tr>
+</table>
+
+### Akış — uyarılar ve "Bu puan neden?"
+
+<img src="docs/img/6_akis_sonra.png" alt="Akış ve kullanıcının mühür kartı">
+<sub>Model uyarıları kırmızı çerçeveyle; en üstteki hesap <b>mühürlü gerçek bir insan</b> ama koordineli bir kampanyanın içinde. Sağda kullanıcının kendi mührü ve puanının açıklaması.</sub>
+
+### Topluluk paneli — nedenler, masum açıklamalar, insan kararı
+
+<img src="docs/img/7_panel.png" alt="Topluluk paneli">
+<sub>8 hesabın 8'i mühürlü gerçek insan, ama 77 dakikada aynı "öğrenci konseyi" kampanyasını paylaşmışlar. Panel nedenlerini gösterir ve "gerçek insan olmaları koordinasyon olmadığını kanıtlamaz" diye not düşer. Karar yöneticinindir.</sub>
+
+<table>
+<tr>
+<td width="50%"><img src="docs/img/7b_panel_graf.png" alt="Ağ grafiği"><br>
+<sub><b>Hesaplar arası bağlantılar:</b> mühürlü/mühürsüz, yeni hesap, takip ve benzer paylaşım.</sub></td>
+<td width="50%"><img src="docs/img/8_model.png" alt="Model kartı"><br>
+<sub><b>Model kartı:</b> basit kurala karşı sonuçlar, senaryo oranları, eşik ve saldırı tabloları, bilinen sınırlar.</sub></td>
+</tr>
+</table>
+
+---
+
+## 📊 Sonuçlar
+
+Sentetik kampüste **4 masum** (etkinlik sonrası paylaşım, kulüp duyurusu, yurt arkadaşları, sınav gecesi) ve
+**4 koordineli** senaryo (bot ağı, satın alınmış hesap, ücretli gerçek kişi, yavaş kampanya).
+12 dünyada eğitim, **hiç görülmemiş 8 dünyada** test.
+
+| | MÜHÜR modeli | Basit kural *(benzer metin + kısa süre)* |
+|---|:---:|:---:|
+| F1 | **0.91** | 0.36 |
+| Uyarıya düşen normal öğrenci | **%2,4** | %40 |
+| Kulüp duyurusunda yanlış alarm | **%0** | %83 |
+| Etkinlik paylaşımında yanlış alarm | **%0** | %79 |
+| Ücretli gerçek kişileri yakalama | **%56** | %25 |
+| Kamufle saldırı *(eğitimde görülmedi)* | **%75** | — |
+
+**Bilinçli tasarım kararları**
+- **Hesap değil küme:** model "bu hesap bot" demez; "bu grup kısa sürede benzer şeyler paylaşmış, nedenleri şunlar" der.
+- **Lojistik regresyon:** her uyarının gerekçesi modelin katkılarından (katsayı × değer) okunur, sonradan yazılmış metin değildir.
+- **PoP durumu modelde yok:** gerçek insan olmak koordinasyon olmadığını, mühürsüz olmak da koordinasyonu kanıtlamaz.
+- **Bağlam yalnız içerikle tutarlıysa sayılır:** "ortak etkinliğe katılmışlar" bilgisi, paylaşımlar o etkinlikten bahsediyorsa riski düşürür. (İlk sürümde bu kural istismar edilebiliyordu: kamufle saldırı %0 → düzeltme sonrası %75.)
+
+**Zayıf noktalar da açık:** farklı cümlelerle ve hashtag'siz yazılan kampanyaların ~1/3'ü aday kümeye girmiyor;
+yavaş kampanyada tespit %25; sınav gecesinde %19 yanlış alarm.
+Tam değerlendirme: [`docs/model_degerlendirme.md`](docs/model_degerlendirme.md)
+
+---
+
+## 🔐 Güvenlik
+
+İlke: **istemciye güvenilmez.** Güven kararını etkileyen her girdi ya sunucunun imzaladığı bir token'dır ya da sunucunun kendi kaydıdır.
+
+| | Önce (denetim, 23 Kasım) | Şimdi |
+|---|---|---|
+| Elle yazılmış JSON "kanıtla" güven puanı | ❌ **0.9997** veriyordu | ✅ 422 reddedilir |
+| İstemcinin kendi bot olasılığını göndermesi | ❌ kabul ediliyordu | ✅ 422 reddedilir |
+| Etkinliğe gitmeden QR üretmek | ❌ herkes üretebiliyordu | ✅ yalnız etkinlik sahibi organizatör |
+| Kullanılmış QR listesi | ⚠️ bellekte, yeniden başlatınca sıfır | ✅ SQLite, kalıcı |
+| İmza | ⚠️ HS256 (doğrulayan da imzalayabilir) | ✅ Ed25519; açık anahtarlar `/.well-known/muhur-keys` |
+| Arayüzdeki risk değerleri | ❌ koda elle yazılmış sabitler | ✅ tamamı modelden |
+
+Ayrıca: takma kimlik için ayrı anahtar, kişi başına etkinlik başına tek katılım, sıkı CORS, istek sınırı,
+fail-closed ayarlar (demo/üretimde anahtar eksikse servis başlamaz).
+Ayrıntı: [`docs/threat_model.md`](docs/threat_model.md)
+
+---
+
+## ✅ Ne gerçek, ne demo?
+
+| ✅ Gerçekten çalışıyor | ◌ Simülasyon / demo | △ Henüz yok |
+|---|---|---|
+| Ed25519 imzalı kimlik ve katılım kanıtları | e-Devlet girişi | Gerçek kullanıcı testi |
+| TC'nin hiçbir yere yazılmaması (DB dahil testli) | Hesaplar ve paylaşımlar (sentetik kampüs) | Organizatör hesapları / rolleri |
+| Organizatör yetkili, tek kullanımlık QR | Model sonuçları (yalnız sentetik veride) | Anlam düzeyinde metin benzerliği |
+| Kandırılamayan sunucu tarafı güven puanı | Demoda arayüz, QR üretmek için kulüp rolünü de oynar | İnternette yayın |
+| Arayüze bağlı açıklanabilir model | | "İlişkilendirilemez" kimlik (şu an: takma adlı) |
+| Yönetici paneli + kalıcı insan incelemesi | | KVKK değerlendirmesi |
+
+Başvuru metinleri için ayrıntılı tablo: [`docs/durum_tablosu.md`](docs/durum_tablosu.md)
+
+---
+
+## 🧪 Test ve saldırı koşumu
 
 ```powershell
+cd backend
+.venv\Scripts\python -m pytest -q                      # 74 passed
+cd ..
+backend\.venv\Scripts\python attack_harness\replay_attack.py   # 15/15 saldırı engellendi
+```
+
+Testler: sahte imza, `alg=none`, algoritma karıştırma, yanlış issuer/audience/tür, süresi dolmuş token,
+replay (sunucu yeniden başladıktan sonra dahil), çift katılım, başkasının kanıtını kullanma, yetkisiz QR,
+istemcinin risk göndermesi, CORS, istek sınırı, TC'nin hiçbir çıktıda ve DB dosyasında olmaması,
+açıklamaların modelle tutarlılığı, kamufle saldırı.
+
+---
+
+## 🛠️ Geliştirici notları
+
+<details>
+<summary><b>Ayrı ayrı çalıştırma (geliştirme modu)</b></summary>
+
+```powershell
+# backend
 cd backend
 python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
+.venv\Scripts\python -m pip install -r requirements.txt
+.venv\Scripts\python -m uvicorn app.main:app --reload       # http://127.0.0.1:8000/docs
 
-Sonra tarayıcıda aç:
-
-- 📘 API dokümantasyonu → `http://127.0.0.1:8000/docs`
-- 💓 Sağlık kontrolü → `http://127.0.0.1:8000/health`
-
-## 🖥️ Arayüz
-
-```powershell
+# arayüz (ayrı terminal)
 cd frontend
 npm install
-npm run dev
+npm run dev                                                  # http://localhost:5173
 ```
 
-- NSosyal akışı → `http://localhost:5173/` (e-Devlet simülasyonu ile giriş)
-- **Topluluk yöneticisi paneli** → `http://localhost:5173/#/panel` (demo kulüp anahtarı hazır gelir)
+Vite başka bir porta geçerse backend'i `MUHUR_CORS_ORIGINS=http://localhost:<port>` ile başlat.
+Demo kulübün organizatör anahtarı (yalnız geliştirme): `demo-kulup-anahtari`.
+</details>
 
-## 🧠 Koordinasyon modeli
+<details>
+<summary><b>Modeli yeniden eğitme ve sağlamlık deneyleri</b></summary>
 
 ```powershell
 cd backend
-.venv\Scripts\python -m app.ml.train_coordination
+.venv\Scripts\python -m app.ml.train_coordination --json app\ml\models\coordination_eval.json
+.venv\Scripts\python -m app.ml.robustness --json app\ml\models\robustness.json
 ```
+</details>
 
-12 sentetik kampüs dünyasında eğitir, görülmemiş 8 dünyada test eder:
-
-| | LR (ürün) | Basit kural |
-|---|---|---|
-| F1 | **0.91** | 0.36 |
-| Uyarıya düşen normal öğrenci | **%2.4** | %40 |
-| Kamufle saldırı tespiti (eğitimde görülmedi) | **%75** | — |
-| Kulüp duyurusunda yanlış alarm | **%0** | %83 |
-
-Ayrıntı ve zayıf noktalar: [`docs/model_degerlendirme.md`](docs/model_degerlendirme.md)
-
-## 🔌 API Uçları (v0.4)
+<details>
+<summary><b>API uçları</b></summary>
 
 | Yöntem | Uç | Yetki | Açıklama |
 |---|---|---|---|
 | `GET` | `/health` | — | Servis durumu |
-| `GET` | `/.well-known/muhur-keys` | — | Açık anahtarlar (JWKS): herkes token'ları bağımsız doğrulayabilir |
+| `GET` | `/.well-known/muhur-keys` | — | Açık anahtarlar (JWKS) |
 | `POST` | `/pop/verify` | — | Kimlik doğrulama (simülasyon) → Ed25519 imzalı personhood token |
 | `GET/POST` | `/organizer/events` | organizatör | Etkinlikleri listele / oluştur |
 | `POST` | `/poa/challenge` | organizatör | Kendi açık etkinliği için 90 sn'lik tek kullanımlık QR |
-| `POST` | `/poa/checkin` | — | QR + personhood token → imzalı katılım kanıtı (kişi başına etkinlik başına 1) |
-| `POST` | `/trust/score` | — | Yalnız imzalı token'larla çalışır; risk değeri sunucudan gelir |
-| `GET` | `/organizer/alerts` | organizatör | Koordinasyon uyarıları (risk sırasıyla, `min_level` filtresi) |
-| `GET` | `/organizer/alerts/{id}` | organizatör | Gerekçeler, masum açıklamalar, ağ grafiği, paylaşımlar, inceleme geçmişi |
-| `POST` | `/organizer/alerts/{id}/review` | organizatör | İnsan kararı: `sorun_yok` / `izle` / `isaretle` + not |
-| `GET` | `/organizer/model` | organizatör | Model kartı: katsayılar, değerlendirme, sınırlar |
-| `GET` | `/demo/personas` | — | **SİMÜLASYON:** akış demosu için sentetik kampüs hesapları |
-| `POST` | `/demo/risk` | organizatör | **SİMÜLASYON:** elle risk değeri (yalnız demo modunda; arayüz kullanmıyor) |
+| `POST` | `/poa/checkin` | — | QR + personhood token → imzalı katılım kanıtı |
+| `POST` | `/trust/score` | — | Yalnız imzalı token'lar; risk değeri sunucudan |
+| `GET` | `/organizer/alerts` | organizatör | Koordinasyon uyarıları |
+| `GET` | `/organizer/alerts/{id}` | organizatör | Gerekçeler, masum açıklamalar, ağ grafiği, inceleme geçmişi |
+| `POST` | `/organizer/alerts/{id}/review` | organizatör | İnsan kararı: `sorun_yok` / `izle` / `isaretle` |
+| `GET` | `/organizer/model` | organizatör | Model kartı |
+| `GET` | `/demo/personas` | — | **Simülasyon:** akış demosu için sentetik kampüs hesapları |
 
-Organizatör yetkisi `X-Organizer-Key` başlığıyla verilir. Anahtarlar veritabanında
-SHA-256 özeti olarak saklanır. Geliştirme ortamında demo kulübün anahtarı
-`demo-kulup-anahtari`'dır.
+Organizatör yetkisi `X-Organizer-Key` başlığıyla verilir; anahtarlar DB'de SHA-256 özeti olarak saklanır.
+</details>
 
-## 🧪 Test
+---
 
-```powershell
-cd backend
-.venv\Scripts\python -m pytest -q
-```
-
-```
-62 passed
-```
-
-Testler; sahte imza, `alg=none`, algoritma karıştırma, yanlış issuer/audience/tür,
-süresi dolmuş token, replay (sunucu yeniden başladıktan sonra dahil), çift
-katılım, başkasının kanıtını kullanma, yetkisiz QR üretme, istemcinin risk
-değeri göndermesi, CORS ve istek sınırını kapsar. TC kimlik numarasının hiçbir
-çıktıda ve veritabanı dosyasında bulunmadığı da test edilir.
-
-## ⚔️ Saldırı Koşumu
-
-```powershell
-backend\.venv\Scripts\python attack_harness\replay_attack.py
-eplay_attack.py
-```
-
-Gerçek HTTP API'ye karşı 15 saldırı dener. Sonuç (2026-11-24): **15/15 engellendi.**
-Ayrıntı: [`docs/threat_model.md`](docs/threat_model.md) · Gerçek/demo ayrımı:
-[`docs/durum_tablosu.md`](docs/durum_tablosu.md)
-
-## 📁 Proje Yapısı
+## 📁 Proje yapısı
 
 ```
 muhur/
-├── backend/
-│   └── app/
-│       ├── pop/          # Proof-of-Personhood — mock issuer, takma kimlik, Ed25519
-│       ├── security/     # anahtarlar, token imzalama/doğrulama, istek sınırı
-│       ├── db/           # SQLite kayıtları
-│       ├── poa/          # Proof-of-Attendance — QR + anti-spoofing
-│       ├── ml/           # sentetik kampüs, koordinasyon modeli, eğitim/değerlendirme
-│       ├── analysis/     # modeli ürüne bağlayan katman (uyarılar, panel görünümleri)
-│       ├── trust/        # Güven puanı (saf formül + token doğrulayan servis)
-│       └── main.py       # FastAPI giriş noktası
-├── attack_harness/       # Saldırı simülasyon scriptleri
-├── docs/                 # Mimari, tehdit modeli, benchmark, görseller
-└── frontend/             # React arayüzü
+├── BASLAT.bat            # tek tıkla kur, derle, çalıştır
+├── backend/app/
+│   ├── pop/              # kanıtlanmış insan — mock issuer, takma kimlik, Ed25519
+│   ├── poa/              # kanıtlanmış katılım — QR challenge, check-in, katılım kanıtı
+│   ├── security/         # anahtarlar, token imzalama/doğrulama, istek sınırı
+│   ├── db/               # SQLite kayıtları
+│   ├── trust/            # güven puanı (saf formül + token doğrulayan servis)
+│   ├── ml/               # sentetik kampüs, koordinasyon modeli, eğitim, sağlamlık
+│   ├── analysis/         # modeli ürüne bağlayan katman (uyarılar, panel)
+│   └── main.py           # FastAPI + derlenmiş sitenin sunulması
+├── frontend/src/         # Landing · Demo · Panel (React + Tailwind)
+├── attack_harness/       # 15 saldırılık koşum
+└── docs/                 # değerlendirme, tehdit modeli, durum tablosu, görseller
 ```
 
-## 🗺️ Yol Haritası
+---
 
-- [x] PoP — mock issuer, takma kimlik, Ed25519 imzalı token
-- [x] PoA — organizatör yetkili, tek kullanımlık QR; kalıcı replay listesi; etkinlik başına tek katılım
-- [x] Sybil/CIB baseline model (Gradient Boosting) + benchmark (sentetik)
-- [x] Güven puanı — sunucu tarafında, yalnız imzalı kanıtlarla
-- [x] Koordinasyon modeli API'ye ve arayüze bağlı, açıklanabilir uyarılar
-- [x] Topluluk yöneticisi paneli (şüpheli kümeler, ağ grafiği, insan incelemesi, model kartı)
-- [x] Zor masum senaryolarla test, yanlış pozitif ölçümü ([`docs/model_degerlendirme.md`](docs/model_degerlendirme.md))
-- [ ] İnternette yayın + demo video
-- [ ] Gerçek kullanıcı testi (onam ve gizlilik planıyla)
-- [ ] GraphSAGE (GNN) ile karşılaştırma
-- [ ] Gerçek e-Devlet / dijital kimlik altyapısına entegrasyon
+## 🗺️ Yol haritası
 
-## 👥 Ekip
-
-Siber güvenlik, yapay zekâ ve ürün geliştirme disiplinlerinden oluşan çok
-disiplinli bir takım. *(Detaylı rol dağılımı teknik raporda yer almaktadır.)*
+- [x] Kanıtlanmış insan — takma kimlik, Ed25519 imzalı token
+- [x] Kanıtlanmış katılım — organizatör yetkili QR, kalıcı replay engeli, etkinlik başına tek katılım
+- [x] Sunucu tarafı, kandırılamayan güven puanı
+- [x] Açıklanabilir koordinasyon modeli, arayüze bağlı
+- [x] Topluluk yöneticisi paneli + insan incelemesi
+- [x] Zor masum senaryolar, ablasyon, kamufle saldırı, dağılım kayması testleri
+- [x] Rehberli demo sitesi, tek tıkla çalıştırma
+- [ ] İnternette yayın + 1–2 dakikalık demo videosu
+- [ ] Gerçek kullanıcı pilotu (onam, veri minimizasyonu, itiraz hakkı, etik onay)
+- [ ] Anlam düzeyinde metin benzerliği (Türkçe cümle gömmeleri), GNN karşılaştırması
+- [ ] Gerçek dijital kimlik altyapısına entegrasyon
 
 ---
 
 <div align="center">
-<sub>NSosyal MÜHÜR — TEKNOFEST 2026 NSosyal İnovasyon Yarışması için geliştirilmiştir.</sub>
+<sub>NSosyal MÜHÜR (SEAL) · TEKNOFEST 2026 NSosyal İnovasyon · NFTE World Series of Innovation<br>
+📄 Geliştirme raporu: <a href="https://omertugrulbayram.github.io/muhur/">omertugrulbayram.github.io/muhur</a></sub>
 </div>
