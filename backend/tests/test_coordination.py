@@ -120,3 +120,25 @@ def test_contributions_sum_to_logit_and_context_only_lowers_risk():
         assert 1 / (1 + math.exp(-logit)) == pytest.approx(a["risk"], abs=1e-3)
         for f in ("shared_event_frac", "shared_club_frac", "shared_dept_frac"):
             assert c[f] <= 1e-9, f"{f} riski artıran gerekçe olamaz"
+
+
+def test_camouflaged_campaign_is_not_hidden_by_event_context():
+    """Kampanyayı etkinlik katılımcılarına yaptırmak, etkinlikten bahsedilmiyorsa riski düşürmez."""
+    hits = total = 0
+    for seed in (211, 212, 213):
+        c = generate(seed=seed, coordinated={"camouflaged_campaign": 2})
+        res = analyze(c)
+        posters = {}
+        for p in c.posts:
+            if p.scenario is not None and c.scenarios[p.scenario].type == "camouflaged_campaign":
+                posters.setdefault(p.scenario, set()).add(p.account)
+        for mem in posters.values():
+            total += 1
+            best = max([a["risk"] for a in res if len(mem & set(a["members"])) >= 0.5 * len(mem)] or [0])
+            hits += best >= 0.5
+            for a in res:
+                # Kümenin çoğu kampanyacıysa etkinlik bağlamı riski belirgin düşürmemeli.
+                # (Kampanya gerçek etkinlik paylaşımlarıyla karışırsa ayrı bir sınırdır; raporda yazılı.)
+                if len(mem & set(a["members"])) >= 0.8 * len(a["members"]):
+                    assert a["contributions"]["shared_event_frac"] > -1.0
+    assert hits / total >= 0.5

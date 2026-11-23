@@ -1,0 +1,248 @@
+{
+  "threshold_sweep": [
+    {
+      "threshold": 0.3,
+      "masum_ortalama_alarm": 0.13,
+      "koordineli_ortalama_tespit": 0.688,
+      "normal_account_fpr": 0.0871,
+      "rates": {
+        "event_crowd": 0.083,
+        "club_announce": 0.0,
+        "dorm_friends": 0.0,
+        "exam_night": 0.438,
+        "bot_network": 1.0,
+        "bought_accounts": 0.938,
+        "paid_humans": 0.562,
+        "slow_campaign": 0.25
+      }
+    },
+    {
+      "threshold": 0.4,
+      "masum_ortalama_alarm": 0.078,
+      "koordineli_ortalama_tespit": 0.688,
+      "normal_account_fpr": 0.0439,
+      "rates": {
+        "event_crowd": 0.0,
+        "club_announce": 0.0,
+        "dorm_friends": 0.0,
+        "exam_night": 0.312,
+        "bot_network": 1.0,
+        "bought_accounts": 0.938,
+        "paid_humans": 0.562,
+        "slow_campaign": 0.25
+      }
+    },
+    {
+      "threshold": 0.5,
+      "masum_ortalama_alarm": 0.047,
+      "koordineli_ortalama_tespit": 0.688,
+      "normal_account_fpr": 0.0238,
+      "rates": {
+        "event_crowd": 0.0,
+        "club_announce": 0.0,
+        "dorm_friends": 0.0,
+        "exam_night": 0.188,
+        "bot_network": 1.0,
+        "bought_accounts": 0.938,
+        "paid_humans": 0.562,
+        "slow_campaign": 0.25
+      }
+    },
+    {
+      "threshold": 0.6,
+      "masum_ortalama_alarm": 0.015,
+      "koordineli_ortalama_tespit": 0.688,
+      "normal_account_fpr": 0.0064,
+      "rates": {
+        "event_crowd": 0.0,
+        "club_announce": 0.0,
+        "dorm_friends": 0.0,
+        "exam_night": 0.062,
+        "bot_network": 1.0,
+        "bought_accounts": 0.938,
+        "paid_humans": 0.562,
+        "slow_campaign": 0.25
+      }
+    },
+    {
+      "threshold": 0.7,
+      "masum_ortalama_alarm": 0.0,
+      "koordineli_ortalama_tespit": 0.688,
+      "normal_account_fpr": 0.0,
+      "rates": {
+        "event_crowd": 0.0,
+        "club_announce": 0.0,
+        "dorm_friends": 0.0,
+        "exam_night": 0.0,
+        "bot_network": 1.0,
+        "bought_accounts": 0.938,
+        "paid_humans": 0.562,
+        "slow_campaign": 0.25
+      }
+    },
+    {
+      "threshold": 0.8,
+      "masum_ortalama_alarm": 0.0,
+      "koordineli_ortalama_tespit": 0.672,
+      "normal_account_fpr": 0.0,
+      "rates": {
+        "event_crowd": 0.0,
+        "club_announce": 0.0,
+        "dorm_friends": 0.0,
+        "exam_night": 0.0,
+        "bot_network": 1.0,
+        "bought_accounts": 0.875,
+        "paid_humans": 0.562,
+        "slow_campaign": 0.25
+      }
+    },
+    {
+      "threshold": 0.9,
+      "masum_ortalama_alarm": 0.0,
+      "koordineli_ortalama_tespit": 0.531,
+      "normal_account_fpr": 0.0,
+      "rates": {
+        "event_crowd": 0.0,
+        "club_announce": 0.0,
+        "dorm_friends": 0.0,
+        "exam_night": 0.0,
+        "bot_network": 1.0,
+        "bought_accounts": 0.625,
+        "paid_humans": 0.5,
+        "slow_campaign": 0.0
+      }
+    }
+  ],
+  "ablation": {
+    "tum_ozellikler": {
+      "masum_ortalama_alarm": 0.047,
+      "koordineli_ortalama_tespit": 0.688,
+      "normal_account_fpr": 0.0238,
+      "rates": {
+        "event_crowd": 0.0,
+        "club_announce": 0.0,
+        "dorm_friends": 0.0,
+        "exam_night": 0.188,
+        "bot_network": 1.0,
+        "bought_accounts": 0.938,
+        "paid_humans": 0.562,
+        "slow_campaign": 0.25
+      }
+    },
+    "baglam_yok": {
+      "masum_ortalama_alarm": 0.052,
+      "koordineli_ortalama_tespit": 0.688,
+      "normal_account_fpr": 0.0365,
+      "rates": {
+        "event_crowd": 0.167,
+        "club_announce": 0.042,
+        "dorm_friends": 0.0,
+        "exam_night": 0.0,
+        "bot_network": 1.0,
+        "bought_accounts": 0.938,
+        "paid_humans": 0.562,
+        "slow_campaign": 0.25
+      }
+    },
+    "hashtag_yok": {
+      "masum_ortalama_alarm": 0.11,
+      "koordineli_ortalama_tespit": 0.688,
+      "normal_account_fpr": 0.0651,
+      "rates": {
+        "event_crowd": 0.0,
+        "club_announce": 0.0,
+        "dorm_friends": 0.0,
+        "exam_night": 0.438,
+        "bot_network": 1.0,
+        "bought_accounts": 0.938,
+        "paid_humans": 0.562,
+        "slow_campaign": 0.25
+      }
+    },
+    "yalniz_metin_ve_zaman": {
+      "masum_ortalama_alarm": 0.656,
+      "koordineli_ortalama_tespit": 0.609,
+      "normal_account_fpr": 0.3869,
+      "rates": {
+        "event_crowd": 0.833,
+        "club_announce": 0.917,
+        "dorm_friends": 0.0,
+        "exam_night": 0.875,
+        "bot_network": 1.0,
+        "bought_accounts": 0.75,
+        "paid_humans": 0.562,
+        "slow_campaign": 0.125
+      }
+    }
+  },
+  "adversarial": {
+    "rates": {
+      "event_crowd": 0.0,
+      "club_announce": 0.0,
+      "dorm_friends": 0.0,
+      "exam_night": 0.083,
+      "bot_network": 1.0,
+      "paid_humans": 0.833,
+      "camouflaged_campaign": 0.75
+    },
+    "normal_account_fpr": 0.0119
+  },
+  "distribution_shift": {
+    "kucuk_kampus_250": {
+      "masum_ortalama_alarm": 0.031,
+      "koordineli_ortalama_tespit": 0.938,
+      "normal_account_fpr": 0.0498,
+      "rates": {
+        "event_crowd": 0.0,
+        "club_announce": 0.0,
+        "dorm_friends": 0.0,
+        "exam_night": 0.125,
+        "bot_network": 1.0,
+        "bought_accounts": 1.0,
+        "paid_humans": 1.0,
+        "slow_campaign": 0.75
+      }
+    },
+    "buyuk_kampus_900": {
+      "masum_ortalama_alarm": 0.031,
+      "koordineli_ortalama_tespit": 0.844,
+      "normal_account_fpr": 0.0132,
+      "rates": {
+        "event_crowd": 0.0,
+        "club_announce": 0.0,
+        "dorm_friends": 0.0,
+        "exam_night": 0.125,
+        "bot_network": 1.0,
+        "bought_accounts": 1.0,
+        "paid_humans": 0.625,
+        "slow_campaign": 0.75
+      }
+    },
+    "masum_agirlikli": {
+      "masum_ortalama_alarm": 0.015,
+      "koordineli_ortalama_tespit": 0.75,
+      "normal_account_fpr": 0.0159,
+      "rates": {
+        "event_crowd": 0.0,
+        "club_announce": 0.0,
+        "dorm_friends": 0.0,
+        "exam_night": 0.062,
+        "bot_network": 1.0,
+        "paid_humans": 0.5
+      }
+    },
+    "saldiri_agirlikli": {
+      "masum_ortalama_alarm": 0.0,
+      "koordineli_ortalama_tespit": 0.802,
+      "normal_account_fpr": 0.0054,
+      "rates": {
+        "event_crowd": 0.0,
+        "club_announce": 0.0,
+        "bot_network": 1.0,
+        "bought_accounts": 1.0,
+        "paid_humans": 0.833,
+        "slow_campaign": 0.375
+      }
+    }
+  }
+}

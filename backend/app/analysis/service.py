@@ -28,6 +28,7 @@ from app.pop.issuer import pseudonymous_subject
 DEMO_SEED = 2026
 DEMO_ORGANIZER = "demo-kulup"
 EVAL_PATH = Path(MODEL_PATH).with_name("coordination_eval.json")
+ROBUST_PATH = Path(MODEL_PATH).with_name("robustness.json")
 SCENARIO_TR = {
     "event_crowd": "Etkinlik sonrası ortak paylaşım (masum)",
     "club_announce": "Kulüp duyurusunun paylaşılması (masum)",
@@ -189,13 +190,18 @@ def model_card() -> dict:
         "coefficients": {f: round(float(c), 3) for f, c in zip(FEATURES, m.coef)},
         "training": m.meta,
         "evaluation": ev,
+        "robustness": (json.loads(ROBUST_PATH.read_text(encoding="utf-8"))
+                       if ROBUST_PATH.exists() else None),
         "data": "Sentetik kampüs verisi (DEMO). Gerçek kullanıcı verisiyle test edilmedi.",
         "limits": [
             "Yalnız sentetik veride ölçüldü; gerçek kampüs verisinde performans farklı olabilir.",
             "Farklı kelimelerle yazılmış ve hashtag kullanmayan kampanyalar çoğu zaman aday kümeye bile girmez.",
             "Günlere yayılmış yavaş kampanyalar zor yakalanır.",
-            "Etkinlik/kulüp bağlamı riski düşürür; bu bilgiyi bilen bir saldırgan kampanyayı bir etkinliğe "
-            "iliştirerek gizlemeye çalışabilir.",
+            "Etkinlik/kulüp bağlamı yalnız paylaşımlar o etkinlikten/kulüpten bahsediyorsa riski düşürür. "
+            "Kampanyayı etkinlik katılımcılarına yaptıran saldırının %75'i yakalandı; kampanya metnine "
+            "etkinlik adını da ekleyen daha dikkatli bir saldırgan test edilmedi.",
+            "Tespit eşikten bağımsız olarak ~%69'da kalıyor: kaçan kampanyaların çoğu aday kümeye hiç girmiyor "
+            "(farklı cümleler, hashtag yok). Bu, anlam düzeyinde benzerlik gerektiriyor.",
             "Model bir yargı değildir: hiçbir hesabı bot ya da kötü niyetli ilan etmez, son karar insandadır.",
         ],
     }
@@ -213,9 +219,15 @@ def demo_personas(seed: int = DEMO_SEED, organizer_id: str = DEMO_ORGANIZER) -> 
     picked: list[tuple[int, int | None, str]] = []      # (hesap, uyarı satırı index, rol)
     used: set[int] = set()
 
+    def scenario_poster(row_idx, a):
+        pids = set(rows[row_idx]["data"]["post_ids"])
+        return any(p.id in pids and p.account == a and p.scenario is not None for p in c.posts)
+
     def take(row_idx, prefer_sealed, role):
         d = rows[row_idx]["data"]
-        cands = sorted(d["members"], key=lambda a: (c.accounts[a].sealed != prefer_sealed, a))
+        # Önce kümenin asıl içeriğini paylaşan, tercih edilen mühür durumundaki hesap
+        cands = sorted(d["members"], key=lambda a: (not scenario_poster(row_idx, a),
+                                                    c.accounts[a].sealed != prefer_sealed, a))
         for a in cands:
             if a not in used:
                 used.add(a)
@@ -223,7 +235,18 @@ def demo_personas(seed: int = DEMO_SEED, organizer_id: str = DEMO_ORGANIZER) -> 
                 return
 
     high = [i for i, r in enumerate(rows) if r["level"] == "yüksek"]
+
+    # Tezin gösterimi: mühürlü (gerçek insan) olduğu halde yüksek riskli bir
+    # koordinasyon kümesinde olan hesap. En çok mühürlü üyesi olan yüksek uyarıdan seçilir.
+    def sealed_share(i):
+        mem = rows[i]["data"]["members"]
+        return sum(c.accounts[a].sealed for a in mem) / len(mem)
+
     seen_truth = set()
+    thesis = max(high, key=sealed_share, default=None)
+    if thesis is not None and sealed_share(thesis) >= 0.5:
+        take(thesis, prefer_sealed=True, role="mühürlü gerçek insan ama koordineli kümede")
+        seen_truth.add(rows[thesis]["data"]["demo_truth"]["scenario"])
     for i in high:
         t = rows[i]["data"]["demo_truth"]["scenario"]
         if t in seen_truth:
@@ -232,10 +255,16 @@ def demo_personas(seed: int = DEMO_SEED, organizer_id: str = DEMO_ORGANIZER) -> 
         take(i, prefer_sealed=(t == "paid_humans"), role="yüksek riskli küme üyesi")
         if len(picked) >= 3:
             break
-    low_benign = [i for i, r in enumerate(rows)
-                  if r["level"] == "düşük" and r["data"]["demo_truth"]["label"] == 0
-                  and r["data"]["demo_truth"]["scenario"] != "organic"]
-    if low_benign:
+    # Masum örnek: paylaşımlarının çoğu gerçekten masum bir senaryodan gelen, düşük riskli küme
+    benign_ids = {sc.id for sc in c.scenarios if sc.label == 0}
+
+    def benign_post_share(i):
+        pids = rows[i]["data"]["post_ids"]
+        return sum(c.posts[p].scenario in benign_ids for p in pids) / max(1, len(pids))
+
+    low_benign = sorted((i for i, r in enumerate(rows) if r["level"] == "düşük"),
+                        key=benign_post_share, reverse=True)
+    if low_benign and benign_post_share(low_benign[0]) >= 0.5:
         take(low_benign[0], prefer_sealed=True, role="benzer paylaşım ama düşük risk (bağlam var)")
 
     in_any = {a for r in rows for a in r["data"]["members"]}
@@ -252,7 +281,8 @@ def demo_personas(seed: int = DEMO_SEED, organizer_id: str = DEMO_ORGANIZER) -> 
         a = c.accounts[acc_id]
         if row_idx is not None:
             pids = set(rows[row_idx]["data"]["post_ids"])
-            post = next(p for p in c.posts if p.id in pids and p.account == acc_id)
+            mine = [p for p in c.posts if p.id in pids and p.account == acc_id]
+            post = next((p for p in mine if p.scenario is not None), mine[0])
         else:
             post = next(p for p in reversed(c.posts) if p.account == acc_id)
         out.append({

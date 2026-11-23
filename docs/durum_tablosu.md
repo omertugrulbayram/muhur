@@ -1,6 +1,6 @@
 # MÜHÜR / SEAL — Gerçek mi, demo mu? Durum tablosu
 
-Tarih: 2026-11-24 · Sürüm: v0.5 · Backend testleri: 73/73 · Saldırı koşumu: 15/15 engellendi
+Tarih: 2026-11-24 · Sürüm: v0.5 · Backend testleri: 74/74 · Saldırı koşumu: 15/15 engellendi
 
 > 2026-11-23 denetiminden sonra 2. adım (güvenlik, **v0.4**) ile 3. ve 4. adımlar (model + yönetici paneli, **v0.5**) yapıldı. Değişen satırlar sürümle işaretli.
 
@@ -37,8 +37,8 @@ neyin henüz hiç olmadığını ayırır. Başvuru metinlerinde "çalışıyor"
 | Özellik | Durum | Not |
 |---|---|---|
 | Sentetik kampüs üretici | ✅ | **(v0.5)** ~600 hesap, iki haftalık paylaşım akışı, kulüp/yurt/bölüm/etkinlik bağlamı. 4 masum (etkinlik, kulüp duyurusu, yurt, sınav gecesi) ve 4 koordineli senaryo (bot ağı, satın alınmış hesap, ücretli gerçek kişi, yavaş kampanya). Eski 1000 hesaplık ağ üreteci de duruyor. |
-| Koordinasyon modeli | ✅ | **(v0.5)** Küme düzeyinde, açıklanabilir lojistik regresyon. Görülmemiş test dünyalarında F1 0.89. Basit kurala göre normal öğrencilerin uyarıya düşme oranı %40 → %3. Ayrıntı: `docs/model_degerlendirme.md`. Eski Gradient Boosting baseline (F1 0.989, kolay ağ) karşılaştırma olarak duruyor. |
-| Sonuçların güvenilirliği | 🟡 | **(v0.5)** Zor masum senaryolar ve yanlış pozitif oranları ölçüldü. Yine de **yalnız sentetik veri**. Zayıf noktalar raporda açıkça yazılı: sınav gecesinde %31 yanlış alarm; ücretli gerçek kişilerde %56, yavaş kampanyada %25 tespit. |
+| Koordinasyon modeli | ✅ | **(v0.5)** Küme düzeyinde, açıklanabilir lojistik regresyon. Görülmemiş test dünyalarında F1 0.91. Basit kurala göre normal öğrencilerin uyarıya düşme oranı %40 → %2.4. Bağlam (etkinlik/kulüp) yalnız paylaşımlar ondan bahsediyorsa riski düşürüyor. Ayrıntı: `docs/model_degerlendirme.md`. |
+| Sonuçların güvenilirliği | 🟡 | **(v0.5)** Zor masum senaryolar, eşik taraması, ablasyon, eğitimde görülmeyen kamufle saldırı (%75 tespit) ve dağılım kayması ölçüldü. Yine de **yalnız sentetik veri**. Zayıf noktalar açık: sınav gecesinde %19 yanlış alarm; ücretli gerçek kişilerde %56, yavaş kampanyada %25 tespit; kampanyaların ~1/3'ü aday kümeye girmiyor. |
 | Mesaj içeriği / zamanlama benzerliği | ✅ | **(v0.5)** TF-IDF metin benzerliği, ortak hashtag ve zaman penceresiyle aday küme bulunuyor. Anlam düzeyinde (paraphrase) benzerlik yok. |
 | Modelin kaydedilmesi ve API'den çağrılması | ✅ | **(v0.5)** Model JSON olarak kayıtlı (pickle değil). Açılışta demo kampüs analiz ediliyor, uyarılar ve hesap riskleri veritabanına yazılıyor. `/organizer/alerts`, `/organizer/model` uçları var. |
 | **Modelin arayüze bağlı olması** | ✅ | **(v0.5)** Paneldeki tüm uyarılar ve akıştaki hesapların risk değerleri modelden geliyor. Elle yazılmış sabit kalmadı. Akış hesapları sentetik demo kampüsünden seçiliyor. |
@@ -98,8 +98,10 @@ neyin henüz hiç olmadığını ayırır. Başvuru metinlerinde "çalışıyor"
   - KVKK uyumu (değerlendirilmedi)
   - İnternette yayın (henüz yok)
 - **Söylenmesi güçlü olan dürüst rakamlar:** Bağlama bakmayan basit kural normal
-  öğrencilerin %40'ını uyarıya sokuyor, MÜHÜR modeli %3'ünü. Kulüp duyurusu ve
+  öğrencilerin %40'ını uyarıya sokuyor, MÜHÜR modeli %2.4'ünü. Kulüp duyurusu ve
   etkinlik paylaşımlarında yanlış alarm %80'den %0'a iniyor. Zor vakalar da
   rakamlarıyla açıkça yazılı.
 
-Sonraki adımlar: test raporunun genişletilmesi (5), internette yayın ve demo video (6).
+- **Dürüstlük örneği (jüri için güçlü):** İlk sürümde bağlam kuralını istismar eden "kamufle saldırı" %0 yakalanıyordu. Bulduk, düzelttik, %75'e çıktı. Ayrıca kendi ilk iddiamızı (kazancı PoA bağlamına bağlamıştık) ablasyonla düzelttik. İkisi de `docs/model_degerlendirme.md`'de yazılı.
+
+Sonraki adım: internette yayın ve demo video (6).

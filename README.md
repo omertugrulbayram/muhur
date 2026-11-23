@@ -10,7 +10,7 @@
 [![Durum](https://img.shields.io/badge/durum-prototip%20aktif-2ea44f?style=for-the-badge)](#-proje-durumu)
 [![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](#-teknoloji-yığını)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi&logoColor=white)](#-teknoloji-yığını)
-[![Testler](https://img.shields.io/badge/testler-73%2F73%20geçti-2ea44f?style=for-the-badge)](#-test)
+[![Testler](https://img.shields.io/badge/testler-74%2F74%20geçti-2ea44f?style=for-the-badge)](#-test)
 [![Lisans](https://img.shields.io/badge/lisans-belirtilecek-lightgrey?style=for-the-badge)](#-lisans)
 
 <br>
@@ -127,7 +127,7 @@ Aşağıdaki sonuçlar **uydurma değildir** — bu repodaki kod çalıştırıl
 | Katılım (PoA) | Ed25519 imzalı tek kullanımlık QR + imzalı katılım kanıtı | ✅ çalışıyor |
 | Yapay Zekâ | scikit-learn: açıklanabilir lojistik regresyon (küme düzeyinde koordinasyon), TF-IDF | ✅ arayüze bağlı · 🟡 yalnız sentetik veride ölçüldü |
 | Ön Yüz | React (Vite) + Tailwind | ✅ çalışıyor |
-| Test | pytest (73 test) + saldırı koşumu (15 saldırı) | ✅ |
+| Test | pytest (74 test) + saldırı koşumu (15 saldırı) | ✅ |
 | Planlanan | GraphSAGE (GNN), Türkçe metin benzerliği | ❌ henüz yok |
 
 ## 🚀 Kurulum ve Çalıştırma (Windows)
@@ -167,8 +167,9 @@ cd backend
 
 | | LR (ürün) | Basit kural |
 |---|---|---|
-| F1 | **0.89** | 0.36 |
-| Uyarıya düşen normal öğrenci | **%3** | %40 |
+| F1 | **0.91** | 0.36 |
+| Uyarıya düşen normal öğrenci | **%2.4** | %40 |
+| Kamufle saldırı tespiti (eğitimde görülmedi) | **%75** | — |
 | Kulüp duyurusunda yanlış alarm | **%0** | %83 |
 
 Ayrıntı ve zayıf noktalar: [`docs/model_degerlendirme.md`](docs/model_degerlendirme.md)

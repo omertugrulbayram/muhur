@@ -157,6 +157,8 @@ class Campus:
 
 BENIGN_TYPES = ["event_crowd", "club_announce", "dorm_friends", "exam_night"]
 COORD_TYPES = ["bot_network", "bought_accounts", "paid_humans", "slow_campaign"]
+# Yalnız sağlamlık testinde kullanılan, eğitimde HİÇ görülmeyen saldırı türü:
+ADVERSARIAL_TYPES = ["camouflaged_campaign"]
 
 
 class _Gen:
@@ -453,6 +455,27 @@ class _Gen:
             self.accounts[a].scenario = s.id
             for _ in range(r.choice([1, 2])):
                 self.post(a, t0 + r.uniform(0, 72 * 60), r.choice(para) + r.choice(_EMO), s.id)
+
+    def camouflaged_campaign(self):
+        """
+        SALDIRI (yalnız test): kampanya gerçek bir etkinliğin hemen ardından, o
+        etkinliğe GERÇEKTEN katılmış (PoA kanıtlı) mühürlü öğrencilere yaptırılır.
+        Modelin "ortak etkinlik riski azaltır" kuralını istismar eder.
+        """
+        r = self.r
+        if not self.events:
+            self.event_crowd()
+        ev = r.choice(self.events)
+        pool = [a for a in ev.attendees if self.accounts[a].sealed and self.accounts[a].kind == "normal"]
+        ids = r.sample(pool, k=min(len(pool), r.randint(8, 16)))
+        name, tag, core, para = self._campaign_texts()
+        t0 = ev.t + r.uniform(20, 180)
+        s = Scenario(len(self.scenarios), "camouflaged_campaign", 1, ids, t0, name)
+        self.scenarios.append(s)
+        for a in ids:
+            self.accounts[a].kind = "paid"
+            self.accounts[a].scenario = s.id
+            self.post(a, t0 + r.expovariate(1 / 30), r.choice(para) + r.choice(_EMO), s.id)
 
 
 def generate(seed: int = 7, n_students: int = 500,

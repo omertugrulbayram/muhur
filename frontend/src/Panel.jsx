@@ -274,6 +274,15 @@ function AlertDetail({ api, id, onReviewed }) {
         </Card>
 
         <Card title="Olası masum açıklamalar" className="ring-[#2a78d6]/30">
+          {exp.cautions?.length > 0 && (
+            <ul className="space-y-2 mb-3">
+              {exp.cautions.map((t, i) => (
+                <li key={i} className="flex gap-2 text-sm leading-snug bg-[#fab219]/15 rounded-lg px-2.5 py-1.5">
+                  <span aria-hidden className="font-700">!</span><span>{t}</span>
+                </li>
+              ))}
+            </ul>
+          )}
           <ul className="space-y-2">
             {exp.innocent_explanations.map((t, i) => (
               <li key={i} className="flex gap-2 text-sm leading-snug"><span aria-hidden>?</span><span>{t}</span></li>
@@ -534,6 +543,11 @@ const SCEN_TR = {
   paid_humans: "Ücretli gerçek kişiler", slow_campaign: "Yavaş kampanya",
 };
 
+const SHIFT_TR = {
+  kucuk_kampus_250: "Küçük kampüs (250 öğrenci)", buyuk_kampus_900: "Büyük kampüs (900 öğrenci)",
+  masum_agirlikli: "Masum senaryo ağırlıklı", saldiri_agirlikli: "Saldırı ağırlıklı",
+};
+
 function ModelCard({ api }) {
   const [m, setM] = useState(null);
   const [err, setErr] = useState("");
@@ -586,6 +600,42 @@ function ModelCard({ api }) {
                     <td className="text-right font-mono">{pct(s.rate)}</td>
                     <td className="text-right font-mono text-ink-soft">{pct(ev.naive.scenarios[k].rate)}</td>
                   </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </div>
+      )}
+
+      {m.robustness && (
+        <div className="grid lg:grid-cols-2 gap-4">
+          <Card title="Eşik değişince ne olur?">
+            <table className="w-full text-sm">
+              <thead className="text-xs text-ink-soft text-left">
+                <tr><th className="py-1 font-600">Eşik</th><th className="font-600 text-right">Masum alarm</th>
+                  <th className="font-600 text-right">Koordineli tespit</th><th className="font-600 text-right">Normal öğrenci YP</th></tr>
+              </thead>
+              <tbody className="divide-y divide-hair">
+                {m.robustness.threshold_sweep.map((r) => (
+                  <tr key={r.threshold} className={r.threshold === 0.5 ? "font-600" : ""}>
+                    <td className="py-1.5 font-mono">{r.threshold.toFixed(1)}</td>
+                    <td className="text-right font-mono">{pct(r.masum_ortalama_alarm)}</td>
+                    <td className="text-right font-mono">{pct(r.koordineli_ortalama_tespit)}</td>
+                    <td className="text-right font-mono">{pct(r.normal_account_fpr)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="mt-2 text-xs text-ink-soft">Tespit eşikten neredeyse bağımsız: kaçan kampanyaların çoğu aday kümeye hiç girmiyor.</p>
+          </Card>
+          <Card title="Saldırı ve dağılım kayması">
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-hair">
+                <tr><td className="py-1.5">Kamufle saldırı (etkinlik katılımcılarına kampanya, eğitimde görülmedi)</td>
+                  <td className="text-right font-mono">{pct(m.robustness.adversarial.rates.camouflaged_campaign)} tespit</td></tr>
+                {Object.entries(m.robustness.distribution_shift).map(([k, v]) => (
+                  <tr key={k}><td className="py-1.5">{SHIFT_TR[k] || k}</td>
+                    <td className="text-right font-mono whitespace-nowrap">{pct(v.koordineli_ortalama_tespit)} tespit · {pct(v.masum_ortalama_alarm)} alarm</td></tr>
                 ))}
               </tbody>
             </table>

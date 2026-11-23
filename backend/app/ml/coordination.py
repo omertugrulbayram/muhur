@@ -42,7 +42,7 @@ from pathlib import Path
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-from app.ml.campus import CLUBS, DAY, Campus
+from app.ml.campus import CLUBS, DAY, Campus, _slug
 
 MODEL_PATH = Path(__file__).resolve().parent / "models" / "coordination_lr.json"
 
@@ -63,8 +63,8 @@ FEATURES = [
     "dormant_frac",        # önceden neredeyse hiç paylaşmayan hesap oranı
     "follow_density",      # küme içi takip yoğunluğu
     "hashtag_link_rate",   # hashtag/link oranı
-    "shared_event_frac",   # paylaşımdan önceki 24 saatte aynı etkinliğe katılanlar (PoA)
-    "shared_club_frac",    # aynı kulübün üyesi olanlar
+    "shared_event_frac",   # aynı etkinliğe katılanlar (PoA) × paylaşımların etkinliği anma oranı
+    "shared_club_frac",    # aynı kulübün üyeleri × paylaşımların kulübü anma oranı
     "shared_dept_frac",    # aynı bölümden olanlar
 ]
 
@@ -78,8 +78,8 @@ FEATURE_LABELS_TR = {
     "dormant_frac": "sessizken birden aktifleşme",
     "follow_density": "karşılıklı takip yoğunluğu",
     "hashtag_link_rate": "hashtag/link yoğunluğu",
-    "shared_event_frac": "ortak etkinlik katılımı (PoA)",
-    "shared_club_frac": "ortak kulüp üyeliği",
+    "shared_event_frac": "içerikle tutarlı ortak etkinlik (PoA)",
+    "shared_club_frac": "içerikle tutarlı ortak kulüp",
     "shared_dept_frac": "aynı bölüm",
 }
 
@@ -220,6 +220,19 @@ def cluster_features(campus: Campus, cl: dict) -> tuple[dict, dict]:
     dept, dept_n = Counter(a.department for a in accs).most_common(1)[0]
     dept_frac = dept_n / n
 
+    # Bağlam ancak İÇERİKLE TUTARLIYSA riski düşürür: ortak bir etkinliğe katılmış
+    # olmak, paylaşımlar o etkinlikten bahsediyorsa masum bir açıklamadır. Etkinlikten
+    # hiç bahsetmeyen bir kampanyayı etkinlik katılımcılarına yaptırmak ("kamufle
+    # saldırı") böylece bağlamın arkasına saklanamaz.
+    slugs = [_slug(p.text) for p in posts]
+    event_mention = club_mention = 0.0
+    if best_event is not None:
+        keys = [_slug(w) for w in best_event.name.split() if not w.isdigit()]
+        event_mention = sum(all(k in sp for k in keys) for sp in slugs) / len(slugs)
+    if best_club is not None:
+        key = _slug(CLUBS[best_club].split()[0])
+        club_mention = sum(key in sp for sp in slugs) / len(slugs)
+
     feats = {
         "log_size": math.log(n),
         "mean_similarity": float(np.mean(sims)) if sims else 0.0,
@@ -230,8 +243,8 @@ def cluster_features(campus: Campus, cl: dict) -> tuple[dict, dict]:
         "dormant_frac": dormant,
         "follow_density": density,
         "hashtag_link_rate": tag_rate,
-        "shared_event_frac": best_event_frac,
-        "shared_club_frac": club_frac,
+        "shared_event_frac": best_event_frac * event_mention,
+        "shared_club_frac": club_frac * club_mention,
         "shared_dept_frac": dept_frac,
     }
     ctx = {
@@ -240,6 +253,8 @@ def cluster_features(campus: Campus, cl: dict) -> tuple[dict, dict]:
         "event": None if best_event is None else {"id": best_event.id, "name": best_event.name},
         "club": None if best_club is None else CLUBS[best_club],
         "department": dept,
+        "raw_event_frac": best_event_frac, "event_mention_frac": event_mention,
+        "raw_club_frac": club_frac, "club_mention_frac": club_mention,
         "sample_texts": [t for t, _ in normed.most_common(3)],
     }
     return feats, ctx
@@ -358,8 +373,10 @@ def explain(feats: dict, ctx: dict, contrib: dict[str, float]) -> dict:
         "dormant_frac": f"Daha önce neredeyse hiç paylaşım yapmamış hesap: {_part(feats['dormant_frac'], n)}.",
         "follow_density": f"Küme içi takip yoğunluğu: %{round(100 * feats['follow_density'])}.",
         "hashtag_link_rate": f"Hashtag veya link içeren paylaşım oranı: %{round(100 * feats['hashtag_link_rate'])}.",
-        "shared_event_frac": f"Ortak bir etkinliğe katılmış hesap: {_part(feats['shared_event_frac'], n)}.",
-        "shared_club_frac": f"Aynı kulübün üyesi olan hesap: {_part(feats['shared_club_frac'], n)}.",
+        "shared_event_frac": (f"Ortak bir etkinliğe katılmış hesap: {_part(ctx['raw_event_frac'], n)}; "
+                              f"paylaşımların %{round(100 * ctx['event_mention_frac'])} kadarı o etkinlikten bahsediyor."),
+        "shared_club_frac": (f"Aynı kulübün üyesi olan hesap: {_part(ctx['raw_club_frac'], n)}; "
+                             f"paylaşımların %{round(100 * ctx['club_mention_frac'])} kadarı kulüpten bahsediyor."),
         "shared_dept_frac": f"Aynı bölümden hesap: {_part(feats['shared_dept_frac'], n)}.",
     }
 
@@ -370,15 +387,21 @@ def explain(feats: dict, ctx: dict, contrib: dict[str, float]) -> dict:
     mitigating = [item(f, w) for f, w in sorted(contrib.items(), key=lambda kv: kv[1]) if w < -0.35][:3]
 
     innocent = []
+    cautions = []
     if ctx["event"] and feats["shared_event_frac"] >= 0.3:
         innocent.append(
-            f"{_part(feats['shared_event_frac'], n)} paylaşımdan önceki 24 saat içinde "
-            f"\"{ctx['event']['name']}\" etkinliğine katılmış (PoA kanıtlı). Ortak bir etkinlik "
-            "hakkında doğal paylaşım olabilir.")
+            f"{_part(ctx['raw_event_frac'], n)} paylaşımdan önceki 24 saat içinde "
+            f"\"{ctx['event']['name']}\" etkinliğine katılmış (PoA kanıtlı) ve paylaşımlar bu "
+            "etkinlikten bahsediyor. Ortak bir etkinlik hakkında doğal paylaşım olabilir.")
+    elif ctx["event"] and ctx["raw_event_frac"] >= 0.3:
+        cautions.append(
+            f"{_part(ctx['raw_event_frac'], n)} \"{ctx['event']['name']}\" etkinliğine katılmış, ama "
+            f"paylaşımların yalnız %{round(100 * ctx['event_mention_frac'])} kadarı etkinlikten bahsediyor. "
+            "Etkinlik bu paylaşımlar için masum bir açıklama sayılmadı.")
     if ctx["club"] and feats["shared_club_frac"] >= 0.4:
         innocent.append(
-            f"{_part(feats['shared_club_frac'], n)} {ctx['club']} üyesi. Bir kulüp duyurusunun "
-            "paylaşılması olabilir.")
+            f"{_part(ctx['raw_club_frac'], n)} {ctx['club']} üyesi ve paylaşımlar kulüpten bahsediyor. "
+            "Bir kulüp duyurusunun paylaşılması olabilir.")
     if feats["shared_dept_frac"] >= 0.5:
         innocent.append(
             f"{_part(feats['shared_dept_frac'], n)} {ctx['department']} bölümünden. Aynı ders, sınav "
@@ -395,6 +418,7 @@ def explain(feats: dict, ctx: dict, contrib: dict[str, float]) -> dict:
         "signals": signals,
         "mitigating": mitigating,
         "innocent_explanations": innocent,
+        "cautions": cautions,
         "pop_context": f"Mühürlü (PoP) hesap: {_part(ctx['sealed_frac'], n)}. PoP durumu risk "
                        "hesabına katılmaz.",
         "caveat": ("Bu bir uyarıdır, suçlama değildir. Model hiçbir hesabı bot ya da kötü niyetli "
