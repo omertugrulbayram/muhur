@@ -21,10 +21,10 @@ class TokenError(Exception):
 
 
 def sign(private_key, kid: str, *, typ: str, iss: str, aud: str, sub: str | None,
-         ttl: int, claims: dict | None = None) -> tuple[str, dict]:
+         ttl: int, claims: dict | None = None, jti: str | None = None) -> tuple[str, dict]:
     now = int(time.time())
     payload = {"typ": typ, "iss": iss, "aud": aud, "iat": now, "exp": now + ttl,
-               "jti": str(uuid.uuid4())}
+               "jti": jti or str(uuid.uuid4())}
     if sub is not None:
         payload["sub"] = sub
     if claims:

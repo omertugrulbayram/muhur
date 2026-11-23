@@ -216,6 +216,13 @@ def record_checkin(challenge_jti: str, challenge_exp: int, event_id: str,
             raise
 
 
+def attendance_jti(event_id: str, subject: str) -> str | None:
+    with connect() as c:
+        row = c.execute("SELECT jti FROM attendances WHERE event_id = ? AND subject = ? AND revoked = 0",
+                        (event_id, subject)).fetchone()
+    return row[0] if row else None
+
+
 def attendance_is_valid(attendance_jti: str, subject: str, event_id: str) -> bool:
     """Kanıt sunucunun kaydında var, bu kişiye ve etkinliğe ait ve iptal edilmemiş mi?"""
     with connect() as c:

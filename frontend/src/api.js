@@ -3,7 +3,8 @@
 //
 // Güvenlik notu: istemci artık güven kararını etkileyen hiçbir değeri (kimlik
 // JSON'u, bot olasılığı) göndermez; yalnız sunucunun imzaladığı token'ları taşır.
-const BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
+// Geliştirmede (vite) backend ayrı portta; derlenmiş site ise backend tarafından aynı adresten sunulur.
+const BASE = import.meta.env.VITE_API_BASE ?? (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
 
 // DEMO: Bu arayüz, örnek hesapları etkinliğe "check-in" yaptırabilmek için demo
 // kulübün organizatör rolünü de oynar. Gerçek üründe bu anahtar yalnız

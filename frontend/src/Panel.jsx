@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { DEMO_ORGANIZER_KEY, organizerApi } from "./api";
+import { TopNav } from "./shared";
 
 /* ============================================================
    Topluluk yöneticisi paneli
@@ -91,23 +92,14 @@ export default function Panel() {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-30 bg-surface/95 backdrop-blur border-b border-hair">
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-4">
-          <a href="#/" className="inline-flex items-center gap-2">
-            <span className="grid place-items-center w-8 h-8 rounded-lg bg-brand text-white font-700">N</span>
-            <span className="font-700 tracking-tight">MÜHÜR <span className="text-ink-soft font-500">Topluluk Paneli</span></span>
-          </a>
-          <nav className="flex items-center gap-1 text-sm ml-2">
-            <a href="#/panel" className={`px-3 py-1.5 rounded-lg ${route.view === "alerts" ? "bg-ink text-white" : "text-ink-soft hover:text-ink"}`}>Uyarılar</a>
-            <a href="#/panel/model" className={`px-3 py-1.5 rounded-lg ${route.view === "model" ? "bg-ink text-white" : "text-ink-soft hover:text-ink"}`}>Model kartı</a>
-          </nav>
-          <div className="ml-auto flex items-center gap-3 text-sm">
-            <DemoBadge />
-            {org ? <span className="font-600">{org.name}</span> : <span className="text-ink-soft">giriş yok</span>}
-            <a href="#/" className="text-ink-soft hover:text-ink">NSosyal akışı →</a>
-          </div>
+      <TopNav active="panel" wide right={org ? <span className="hidden md:inline font-600">{org.name}</span> : null} />
+      <div className="bg-surface border-b border-hair">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center gap-2 text-sm">
+          <a href="#/panel" className={`px-3 py-1.5 rounded-lg ${route.view === "alerts" ? "bg-ink text-white" : "text-ink-soft hover:text-ink"}`}>Uyarılar</a>
+          <a href="#/panel/model" className={`px-3 py-1.5 rounded-lg ${route.view === "model" ? "bg-ink text-white" : "text-ink-soft hover:text-ink"}`}>Model kartı</a>
+          <span className="ml-auto text-xs text-ink-soft hidden sm:inline">Uyarı bir suçlama değildir · son karar yöneticidedir</span>
         </div>
-      </header>
+      </div>
 
       {!org ? (
         <KeyLogin initial={key} onSubmit={setKey} error={err} />
@@ -153,7 +145,7 @@ function AlertsView({ api, selectedId }) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-4 grid lg:grid-cols-[380px_1fr] gap-4 items-start">
-      <aside className="lg:sticky lg:top-18">
+      <aside className="lg:sticky lg:top-28">
         <div className="bg-surface rounded-2xl ring-1 ring-hair p-3">
           <div className="flex items-center justify-between px-1">
             <h2 className="font-700">Koordinasyon uyarıları</h2>
@@ -172,7 +164,7 @@ function AlertsView({ api, selectedId }) {
           </div>
         </div>
         {err && <p className="mt-3 text-sm text-brand">{err}</p>}
-        <ul className="mt-3 space-y-2 lg:max-h-[calc(100vh-13rem)] overflow-auto pr-1">
+        <ul className="mt-3 space-y-2 lg:max-h-[calc(100vh-17rem)] overflow-auto pr-1">
           {alerts?.map((a) => (
             <li key={a.id}>
               <a href={`#/panel/${a.id}`}
@@ -331,7 +323,7 @@ function AlertDetail({ api, id, onReviewed }) {
                 {d.accounts.map((a) => (
                   <tr key={a.id}>
                     <td className="py-1.5 pr-2 font-mono text-xs">@{a.handle}</td>
-                    <td className="pr-2">{a.sealed ? "✓ mühürlü" : <span className="text-ink-soft">—</span>}</td>
+                    <td className="pr-2 whitespace-nowrap">{a.sealed ? <span className="text-trust-high" title="Mühürlü (PoP)">✓</span> : <span className="text-ink-soft">—</span>}</td>
                     <td className={`pr-2 whitespace-nowrap ${a.is_new ? "font-600" : ""}`}>{a.account_age_days} gün{a.is_new ? " (yeni)" : ""}</td>
                     <td className="pr-2">{a.department}</td>
                     <td className="text-xs">{a.recent_events.join(", ") || <span className="text-ink-soft">—</span>}</td>

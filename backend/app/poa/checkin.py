@@ -101,6 +101,25 @@ def verify_checkin(checkin_token: str, personhood_token: str) -> dict:
     }
 
 
+def demo_ensure_attendance(event_id: str, subject: str) -> str:
+    """
+    YALNIZ DEMO: demo hesabın etkinlik katılımını sunucuda kaydeder (yoksa) ve kayıttaki
+    kimlikle imzalı katılım kanıtını yeniden üretir. Böylece demo, hangi tarayıcıdan
+    açılırsa açılsın aynı sonucu verir. Gerçek akışta kanıt yalnız QR check-in ile alınır.
+    """
+    import uuid
+    jti = store.attendance_jti(event_id, subject)
+    if jti is None:
+        jti = str(uuid.uuid4())
+        store.record_checkin(f"demo-seed-{uuid.uuid4()}", int(time.time()), event_id, subject, jti)
+    token, _ = tokens.sign(
+        keys.poa_private_key(), settings.poa_kid,
+        typ=TYP_ATTENDANCE, iss=settings.poa_issuer, aud=settings.aud_attendance,
+        sub=subject, ttl=settings.attendance_ttl, claims={"event_id": event_id}, jti=jti,
+    )
+    return token
+
+
 def verify_attendance_token(token: str, expected_subject: str) -> dict:
     """İmza + tür + süre + bu kişiye ait mi + sunucu kaydında var/iptal edilmemiş mi."""
     try:

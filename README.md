@@ -130,6 +130,20 @@ Aşağıdaki sonuçlar **uydurma değildir** — bu repodaki kod çalıştırıl
 | Test | pytest (74 test) + saldırı koşumu (15 saldırı) | ✅ |
 | Planlanan | GraphSAGE (GNN), Türkçe metin benzerliği | ❌ henüz yok |
 
+## ▶️ Tek tıkla çalıştır (Windows)
+
+`BASLAT.bat` dosyasına çift tıkla. İlk seferde Python ortamını kurar ve arayüzü
+derler, sonra tarayıcıda **http://127.0.0.1:8000** açılır. Site ve API aynı
+adresten sunulur.
+
+| Sayfa | Adres | Ne var? |
+|---|---|---|
+| Açılış | `/#/` | Dört aşama, rakamlar, ne gerçek / ne demo |
+| Kullanıcı demosu | `/#/demo` | ① e-Devlet (simülasyon) ile mühür → ② QR ile etkinliğe katılım + replay saldırısını deneme → ③ akış ve güven gerekçeleri |
+| Topluluk paneli | `/#/panel` | Uyarılar, nedenler, masum açıklamalar, ağ grafiği, insan incelemesi, model kartı |
+
+Gereken: Python 3.11+ ve Node.js 18+.
+
 ## 🚀 Kurulum ve Çalıştırma (Windows)
 
 ```powershell

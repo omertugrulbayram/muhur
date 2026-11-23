@@ -72,7 +72,7 @@ def require_organizer(x_organizer_key: Optional[str] = Header(None)) -> dict:
     return org
 
 
-@app.get("/")
+@app.get("/api")
 def root():
     return {"service": "NSosyal MÜHÜR API", "docs": "/docs", "health": "/health"}
 
@@ -285,3 +285,14 @@ def demo_personas():
     if not settings.enable_demo_endpoints or not settings.demo_campus:
         raise HTTPException(status_code=404, detail="Not Found")
     return {"demo": True, "personas": analysis.demo_personas()}
+
+
+# ---------------- Site (derlenmiş arayüz) ----------------
+# frontend/dist varsa aynı sunucudan sunulur: tek adres, CORS gerekmez.
+# API uçları yukarıda tanımlandığı için önceliklidir.
+from pathlib import Path as _Path  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+
+_DIST = _Path(__file__).resolve().parents[2] / "frontend" / "dist"
+if _DIST.is_dir():
+    app.mount("/", StaticFiles(directory=_DIST, html=True), name="site")

@@ -276,6 +276,8 @@ def demo_personas(seed: int = DEMO_SEED, organizer_id: str = DEMO_ORGANIZER) -> 
                 used.add(a.id)
                 picked.append((a.id, None, "normal öğrenci, uyarı yok"))
 
+    from app.poa.checkin import demo_ensure_attendance
+
     out = []
     for acc_id, row_idx, role in picked:
         a = c.accounts[acc_id]
@@ -290,6 +292,10 @@ def demo_personas(seed: int = DEMO_SEED, organizer_id: str = DEMO_ORGANIZER) -> 
             "name": a.handle.split("_")[0].split(".")[0].rstrip("0123456789").capitalize() or a.handle,
             "sealed": a.sealed,
             "national_id": demo_national_id(seed, acc_id) if a.sealed else None,
+            # Uyarısı olmayan normal öğrenciler TEKNOFEST'e katılmış (PoA) — sunucuda kayıtlı.
+            "attendance_tokens": ([demo_ensure_attendance(
+                "teknofest-2026", pseudonymous_subject(demo_national_id(seed, acc_id)))]
+                if a.sealed and row_idx is None else []),
             "text": post.text,
             "time": _fmt_time(post.t),
             "alert_id": rows[row_idx]["id"] if row_idx is not None else None,
