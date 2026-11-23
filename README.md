@@ -130,6 +130,8 @@ Aşağıdaki sonuçlar **uydurma değildir** — bu repodaki kod çalıştırıl
 | Test | pytest (74 test) + saldırı koşumu (15 saldırı) | ✅ |
 | Planlanan | GraphSAGE (GNN), Türkçe metin benzerliği | ❌ henüz yok |
 
+> 📄 **Geliştirme raporu (Kasım 2026):** https://omertugrulbayram.github.io/muhur/
+
 ## ▶️ Tek tıkla çalıştır (Windows)
 
 `BASLAT.bat` dosyasına çift tıkla. İlk seferde Python ortamını kurar ve arayüzü
