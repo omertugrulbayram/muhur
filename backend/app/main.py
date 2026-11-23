@@ -11,12 +11,13 @@ ya sunucunun imzaladığı bir token'dır ya da sunucunun kendi kaydıdır.
 import re
 import time
 from contextlib import asynccontextmanager
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.analysis import service as analysis
 from app.config import settings
 from app.db import store
 from app.poa.checkin import (
@@ -27,13 +28,15 @@ from app.pop.verifier import verify_personhood_token, PersonhoodTokenError
 from app.security import keys, ratelimit
 from app.trust.service import TrustInputError, trust_for_tokens
 
-VERSION = "0.4.0"
+VERSION = "0.5.0"
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     settings.validate()          # fail-closed: anahtar eksikse başlamaz
     store.init_db()
+    if settings.demo_campus and settings.demo_organizer_key:
+        analysis.run_demo_analysis()
     yield
 
 
@@ -222,3 +225,63 @@ def demo_set_risk(req: DemoRisk, org: dict = Depends(require_organizer)):
     store.add_risk_assessment(pop["sub"], req.probability, "manual-demo", None, reasons)
     return {"subject": pop["sub"], "probability": req.probability, "source": "manual-demo",
             "set_by": org["id"], "at": int(time.time())}
+
+
+# ---------------- Yönetici paneli: uyarılar ve insan incelemesi ----------------
+_LEVELS = {"düşük": 0, "orta": 1, "yüksek": 2}
+
+
+@app.get("/organizer/alerts")
+def organizer_alerts(min_level: str = "düşük", org: dict = Depends(require_organizer)):
+    """Koordinasyon uyarıları (risk sırasıyla). Veriler sentetik demo kampüsünden gelir."""
+    floor = _LEVELS.get(min_level, 0)
+    rows = [r for r in store.list_alerts(org["id"]) if _LEVELS[r["level"]] >= floor]
+    return {"demo": True, "alerts": [analysis.alert_summary(r) for r in rows]}
+
+
+def _own_alert(alert_id: str, org: dict) -> dict:
+    row = store.get_alert(alert_id)
+    if row is None or row["organizer_id"] != org["id"]:
+        raise HTTPException(status_code=404, detail="alert_not_found")
+    return row
+
+
+@app.get("/organizer/alerts/{alert_id}")
+def organizer_alert_detail(alert_id: str, org: dict = Depends(require_organizer)):
+    return analysis.alert_detail(_own_alert(alert_id, org))
+
+
+class ReviewRequest(Strict):
+    decision: Literal["sorun_yok", "izle", "isaretle"]
+    note: Optional[str] = Field(None, max_length=500)
+
+
+@app.post("/organizer/alerts/{alert_id}/review")
+def organizer_review(alert_id: str, req: ReviewRequest, org: dict = Depends(require_organizer)):
+    """İnsan kararı. Model karar vermez; yalnız inceleme önerir."""
+    _own_alert(alert_id, org)
+    return store.add_review(alert_id, org["id"], req.decision, req.note)
+
+
+@app.get("/organizer/model")
+def organizer_model(_org: dict = Depends(require_organizer)):
+    """Model kartı: tür, katsayılar, değerlendirme sonuçları ve bilinen sınırlar."""
+    return analysis.model_card()
+
+
+@app.post("/organizer/analysis/run")
+def organizer_run_analysis(org: dict = Depends(require_organizer)):
+    if not settings.enable_demo_endpoints or org["id"] != analysis.DEMO_ORGANIZER:
+        raise HTTPException(status_code=404, detail="Not Found")
+    return {"alerts": analysis.run_demo_analysis()}
+
+
+@app.get("/demo/personas")
+def demo_personas():
+    """
+    SİMÜLASYON: NSosyal akış demosu için demo kampüsten seçilmiş hesaplar.
+    Riskleri elle değil, koordinasyon modelinin ürettiği kayıttan gelir.
+    """
+    if not settings.enable_demo_endpoints or not settings.demo_campus:
+        raise HTTPException(status_code=404, detail="Not Found")
+    return {"demo": True, "personas": analysis.demo_personas()}

@@ -1,8 +1,8 @@
 # MÜHÜR / SEAL — Gerçek mi, demo mu? Durum tablosu
 
-Tarih: 2026-11-24 · Sürüm: v0.4 · Backend testleri: 62/62 · Saldırı koşumu: 15/15 engellendi
+Tarih: 2026-11-24 · Sürüm: v0.5 · Backend testleri: 73/73 · Saldırı koşumu: 15/15 engellendi
 
-> 2026-11-23 denetiminden sonra 2. adım (güvenlik ve mahremiyet) yapıldı. Değişen satırlar **(v0.4)** ile işaretli.
+> 2026-11-23 denetiminden sonra 2. adım (güvenlik, **v0.4**) ile 3. ve 4. adımlar (model + yönetici paneli, **v0.5**) yapıldı. Değişen satırlar sürümle işaretli.
 
 Bu tablo, prototipte neyin gerçekten çalıştığını, neyin simülasyon olduğunu ve
 neyin henüz hiç olmadığını ayırır. Başvuru metinlerinde "çalışıyor" denecek her
@@ -36,20 +36,20 @@ neyin henüz hiç olmadığını ayırır. Başvuru metinlerinde "çalışıyor"
 
 | Özellik | Durum | Not |
 |---|---|---|
-| Sentetik sosyal ağ üretici | ✅ | 1000 hesap, %15 bot, "gizlenen bot" ve "yalnız kurt" türleri var. |
-| Gradient Boosting modeli + ablasyon | ✅ | F1 0.989, AUC 0.998. Ağ özellikleri çıkarılınca F1 0.704'e düşüyor. |
-| Sonuçların güvenilirliği | 🟡 | Sadece sentetik veride ölçüldü. Bot kümesi kendi içinde yoğun karşılıklı takipleştiği için ayırt etmesi kolay. Zor normal senaryolar (aynı etkinlikteki öğrenciler, kulüp duyurusu) test edilmedi, yanlış pozitif analizi yok. |
-| Mesaj içeriği / zamanlama benzerliği | ❌ | Model sadece hesap ve takip özelliklerine bakıyor. Mesaj benzerliği ve "kısa sürede aynı paylaşım" sinyali yok. |
-| Modelin kaydedilmesi ve API'den çağrılması | ❌ | Model her çalıştırmada eğitilip atılıyor, tahmin yapan bir API ucu yok. |
-| **Modelin arayüze bağlı olması** | ❌ | **Arayüzdeki bot olasılıkları `App.jsx` içinde elle yazılmış sabitler** (0.03, 0.28, 0.72…). "Kampanyayı tetikle" butonu değeri 0.9 yapıyor. Arayüzdeki hiçbir sayı modelden gelmiyor. |
-| Örnek hesapların risk değerleri | 🟡 | **(v0.4)** Artık istemcide değil, sunucuya `/demo/risk` ile yazılıyor ve her gerekçede "demo amaçlı elle girilmiş değer" diye görünüyor. Model bağlanınca kalkacak. |
+| Sentetik kampüs üretici | ✅ | **(v0.5)** ~600 hesap, iki haftalık paylaşım akışı, kulüp/yurt/bölüm/etkinlik bağlamı. 4 masum (etkinlik, kulüp duyurusu, yurt, sınav gecesi) ve 4 koordineli senaryo (bot ağı, satın alınmış hesap, ücretli gerçek kişi, yavaş kampanya). Eski 1000 hesaplık ağ üreteci de duruyor. |
+| Koordinasyon modeli | ✅ | **(v0.5)** Küme düzeyinde, açıklanabilir lojistik regresyon. Görülmemiş test dünyalarında F1 0.89. Basit kurala göre normal öğrencilerin uyarıya düşme oranı %40 → %3. Ayrıntı: `docs/model_degerlendirme.md`. Eski Gradient Boosting baseline (F1 0.989, kolay ağ) karşılaştırma olarak duruyor. |
+| Sonuçların güvenilirliği | 🟡 | **(v0.5)** Zor masum senaryolar ve yanlış pozitif oranları ölçüldü. Yine de **yalnız sentetik veri**. Zayıf noktalar raporda açıkça yazılı: sınav gecesinde %31 yanlış alarm; ücretli gerçek kişilerde %56, yavaş kampanyada %25 tespit. |
+| Mesaj içeriği / zamanlama benzerliği | ✅ | **(v0.5)** TF-IDF metin benzerliği, ortak hashtag ve zaman penceresiyle aday küme bulunuyor. Anlam düzeyinde (paraphrase) benzerlik yok. |
+| Modelin kaydedilmesi ve API'den çağrılması | ✅ | **(v0.5)** Model JSON olarak kayıtlı (pickle değil). Açılışta demo kampüs analiz ediliyor, uyarılar ve hesap riskleri veritabanına yazılıyor. `/organizer/alerts`, `/organizer/model` uçları var. |
+| **Modelin arayüze bağlı olması** | ✅ | **(v0.5)** Paneldeki tüm uyarılar ve akıştaki hesapların risk değerleri modelden geliyor. Elle yazılmış sabit kalmadı. Akış hesapları sentetik demo kampüsünden seçiliyor. |
+| Elle risk girme (`/demo/risk`) | 🟡 | **(v0.5)** Arayüz artık kullanmıyor. Uç yalnız demo modunda ve organizatör anahtarıyla duruyor, kayıt `manual-demo` olarak etiketleniyor. |
 
 ## 4. Güven puanı
 
 | Özellik | Durum | Not |
 |---|---|---|
 | Şeffaf puan formülü | ✅ | Güven = (0.65·PoP + 0.35·PoA) × (1 − bot olasılığı), kırılım ve gerekçe listesiyle birlikte. Testleri var. |
-| Gerekçe listesi ("neden bu puan?") | 🟡 | Var. **(v0.4)** Yüksek riskte "son karar insan incelemesinde" notu ve elle girilmiş demo değerler için etiket eklendi. Hangi davranışın dikkat çektiği ve olası masum açıklama henüz yok (3. adım). |
+| Açıklanabilir uyarılar | ✅ | **(v0.5)** Her uyarıda modelin katkılarından üretilen "neden dikkat çekti" ve "riski azaltanlar" listeleri var. Olası masum açıklamalar (ortak etkinlik, kulüp, bölüm) ve "son karar insanda" notu her zaman gösteriliyor. Cümlelerin modelle tutarlılığı testle kilitli. |
 | **Puanın istemci tarafından değiştirilememesi** | ✅ | **(v0.4)** `/trust/score` yalnız imzalı token kabul ediyor, bilinmeyen alanlar 422 ile reddediliyor. Risk değeri sunucu kaydından okunuyor. 2026-11-23'te sahte kanıtla 0.9997 alınan istek artık 422 dönüyor. |
 | Kalıcı kayıt | ✅ | **(v0.4)** SQLite: organizatörler, etkinlikler, kullanılmış QR'lar, katılımlar, risk kayıtları. TC, isim veya doğum tarihi tutulmuyor. |
 
@@ -57,12 +57,12 @@ neyin henüz hiç olmadığını ayırır. Başvuru metinlerinde "çalışıyor"
 
 | Özellik | Durum | Not |
 |---|---|---|
-| NSosyal akış demosu (React) | ✅ | Gerçek backend'e bağlı. Mühür rozetleri, güven bandı, filtreler var. Gönderiler ve hesaplar sabit örnek veri. |
+| NSosyal akış demosu (React) | ✅ | Gerçek backend'e bağlı. **(v0.5)** Hesaplar ve paylaşımlar sentetik kampüsten, riskler modelden. Yüksek riskli kümedeki hesapta "yargı değil, inceleme bekliyor" notu ve panele bağlantı var. |
 | Simülasyon etiketleri | ✅ | "DEMO", "mock issuer", "e-Devlet entegrasyonu YOK" yazıları görünüyor. |
-| Topluluk yöneticisi paneli | ❌ | Yok. |
-| Şüpheli küme listesi / ağ grafiği | ❌ | Yok (`docs/network_graph.png` statik bir görsel). |
-| İnsan incelemesi (onayla / izle / işaretle) | ❌ | Yok. |
-| Şeffaf keşif katmanı (`discovery/`) | ❌ | Klasör boş. |
+| Topluluk yöneticisi paneli | ✅ | **(v0.5)** `#/panel`. Organizatör anahtarıyla giriliyor. Uyarı listesi ve risk filtresi, detay, paylaşımlar, hesap tablosu ve model kartı var. Her ekranda "DEMO VERİ" etiketi var. |
+| Şüpheli küme listesi / ağ grafiği | ✅ | **(v0.5)** Etkileşimli ağ grafiği: mühürlü/mühürsüz, yeni hesap, takip ve benzer paylaşım bağlantıları. |
+| İnsan incelemesi | ✅ | **(v0.5)** Sorun yok / İzle / İşaretle kararları notla birlikte kalıcı kaydediliyor. Geçmiş görünüyor, model yeniden çalışınca karar korunuyor. Kararlar şimdilik başka bir yere aktarılmıyor (ör. modeli yeniden eğitmek için). |
+| Şeffaf keşif katmanı (`discovery/`) | ❌ | Klasör boş. Akıştaki "Neden bunu görüyorum?" güven gerekçelerini gösteriyor ama ayrı bir keşif/sıralama katmanı yok. |
 | İnternette yayın | ❌ | Sadece yerelde çalışıyor (`127.0.0.1`). |
 
 ## 6. Altyapı ve güvenlik
@@ -81,23 +81,25 @@ neyin henüz hiç olmadığını ayırır. Başvuru metinlerinde "çalışıyor"
 - **Rahatça "çalışıyor" denebilir:**
   - Ed25519 imzalı kimlik ve katılım kanıtları, açık anahtarla bağımsız doğrulama
   - TC kimlik numarasının saklanmaması (veritabanı dosyası dahil test edildi)
-  - Organizatör yetkili, tek kullanımlık, 90 saniyelik QR ile check-in
-  - Kalıcı replay engeli ve etkinlik başına tek katılım
-  - İstemcinin değiştiremediği, sunucu tarafında hesaplanan şeffaf güven puanı
-  - 62 otomatik test ve 15 saldırının engellendiğini gösteren saldırı koşumu
-  - Sentetik ağ üzerinde model ve ablasyon
-  - Simülasyon etiketli demo arayüz
+  - Organizatör yetkili, tek kullanımlık, 90 saniyelik QR ile check-in; kalıcı replay engeli
+  - İstemcinin değiştiremediği, sunucu tarafında hesaplanan güven puanı
+  - Arayüze bağlı, açıklanabilir koordinasyon modeli
+  - Topluluk yöneticisi paneli: uyarı nedenleri, olası masum açıklamalar, ağ grafiği, insan incelemesi
+  - 73 otomatik test, 15 saldırının engellendiğini gösteren saldırı koşumu
 - **"Prototip / simülasyon" diye yazılmalı:**
   - e-Devlet doğrulaması
-  - Model sonuçları (sadece sentetik veri)
-  - Örnek hesapların risk değerleri (elle girilmiş, etiketli)
+  - Tüm kampüs verisi ve model sonuçları (sentetik)
   - İstek sınırlama (tek sunucu)
 - **Şu an "var" denmemeli:**
-  - Modelin canlı arayüze bağlı olması
-  - Açıklanabilir uyarılar
-  - Yönetici paneli ve insan incelemesi
+  - Gerçek kullanıcı verisiyle test
   - Organizatör hesapları ve rolleri
+  - Anlam düzeyinde (paraphrase) metin benzerliği, GNN
   - "İlişkilendirilemez" (unlinkable) kimlik. Doğrusu takma kimlik (pseudonymous).
   - KVKK uyumu (değerlendirilmedi)
+  - İnternette yayın (henüz yok)
+- **Söylenmesi güçlü olan dürüst rakamlar:** Bağlama bakmayan basit kural normal
+  öğrencilerin %40'ını uyarıya sokuyor, MÜHÜR modeli %3'ünü. Kulüp duyurusu ve
+  etkinlik paylaşımlarında yanlış alarm %80'den %0'a iniyor. Zor vakalar da
+  rakamlarıyla açıkça yazılı.
 
-Sonraki adım: 3. bölüm. Gerçekçi sentetik kampüs, model API'ye bağlanacak, açıklanabilir uyarılar.
+Sonraki adımlar: test raporunun genişletilmesi (5), internette yayın ve demo video (6).

@@ -61,6 +61,24 @@ CREATE TABLE IF NOT EXISTS risk_assessments (
     created_at    INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ix_risk_subject ON risk_assessments(subject, id);
+CREATE TABLE IF NOT EXISTS alerts (
+    id            TEXT PRIMARY KEY,           -- "<kampüs>-<küme>"
+    organizer_id  TEXT NOT NULL REFERENCES organizers(id),
+    risk          REAL NOT NULL,
+    level         TEXT NOT NULL,
+    status        TEXT NOT NULL DEFAULT 'acik',   -- acik | sorun_yok | izle | isaretle
+    model_version TEXT NOT NULL,
+    data_json     TEXT NOT NULL,
+    created_at    INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS reviews (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    alert_id      TEXT NOT NULL REFERENCES alerts(id),
+    organizer_id  TEXT NOT NULL,
+    decision      TEXT NOT NULL,
+    note          TEXT,
+    created_at    INTEGER NOT NULL
+);
 """
 
 _init_lock = Lock()
@@ -230,3 +248,86 @@ def latest_risk(subject: str) -> dict | None:
     d = dict(row)
     d["reasons"] = json.loads(d.pop("reasons_json"))
     return d
+
+
+# ---------------- uyarılar ve insan incelemesi ----------------
+def upsert_alert(alert_id: str, organizer_id: str, risk: float, level: str,
+                 model_version: str, data: dict) -> None:
+    """Uyarıyı yazar; daha önce incelenmişse durumunu ve inceleme geçmişini KORUR."""
+    with connect() as c:
+        c.execute(
+            "INSERT INTO alerts(id, organizer_id, risk, level, model_version, data_json, created_at) "
+            "VALUES (?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET risk = excluded.risk, "
+            "level = excluded.level, model_version = excluded.model_version, "
+            "data_json = excluded.data_json",
+            (alert_id, organizer_id, float(risk), level, model_version,
+             json.dumps(data, ensure_ascii=False), int(time.time())),
+        )
+
+
+def list_alerts(organizer_id: str) -> list[dict]:
+    with connect() as c:
+        rows = c.execute("SELECT * FROM alerts WHERE organizer_id = ? ORDER BY risk DESC",
+                         (organizer_id,)).fetchall()
+    out = []
+    for r in rows:
+        d = dict(r)
+        d["data"] = json.loads(d.pop("data_json"))
+        out.append(d)
+    return out
+
+
+def get_alert(alert_id: str) -> dict | None:
+    with connect() as c:
+        r = c.execute("SELECT * FROM alerts WHERE id = ?", (alert_id,)).fetchone()
+    if not r:
+        return None
+    d = dict(r)
+    d["data"] = json.loads(d.pop("data_json"))
+    return d
+
+
+def add_review(alert_id: str, organizer_id: str, decision: str, note: str | None) -> dict:
+    now = int(time.time())
+    with connect() as c:
+        c.execute("BEGIN IMMEDIATE")
+        try:
+            c.execute("INSERT INTO reviews(alert_id, organizer_id, decision, note, created_at) "
+                      "VALUES (?,?,?,?,?)", (alert_id, organizer_id, decision, note, now))
+            c.execute("UPDATE alerts SET status = ? WHERE id = ?", (decision, alert_id))
+            c.execute("COMMIT")
+        except Exception:
+            c.execute("ROLLBACK")
+            raise
+    return {"alert_id": alert_id, "decision": decision, "note": note, "created_at": now}
+
+
+def list_reviews(alert_id: str) -> list[dict]:
+    with connect() as c:
+        rows = c.execute("SELECT decision, note, organizer_id, created_at FROM reviews "
+                         "WHERE alert_id = ? ORDER BY id", (alert_id,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def write_analysis(organizer_id: str, alerts: list[dict], risks: list[dict]) -> None:
+    """Analiz sonucunu TEK işlemde yazar (uyarılar + model risk kayıtları)."""
+    now = int(time.time())
+    with connect() as c:
+        c.execute("BEGIN IMMEDIATE")
+        try:
+            c.executemany(
+                "INSERT INTO alerts(id, organizer_id, risk, level, model_version, data_json, created_at) "
+                "VALUES (?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET risk = excluded.risk, "
+                "level = excluded.level, model_version = excluded.model_version, "
+                "data_json = excluded.data_json",
+                [(a["id"], organizer_id, float(a["risk"]), a["level"], a["model_version"],
+                  json.dumps(a["data"], ensure_ascii=False), now) for a in alerts])
+            c.executemany(
+                "INSERT INTO risk_assessments(subject, probability, source, model_version, "
+                "reasons_json, created_at) VALUES (?,?,?,?,?,?)",
+                [(r["subject"], float(r["probability"]), "model", r["model_version"],
+                  json.dumps(r["reasons"], ensure_ascii=False), now) for r in risks])
+            c.execute("COMMIT")
+        except Exception:
+            c.execute("ROLLBACK")
+            raise

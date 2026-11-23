@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "./api";
+import Panel from "./Panel";
 
 /* ============================================================
    Ortak yardimcilar
@@ -192,56 +193,31 @@ function EDevletModal({ onSuccess, onClose }) {
 
 /* ============================================================
    3) NSosyal AKISI (mikroblog + MÜHÜR katmani)
+   Hesaplar ve paylaşımlar sentetik demo kampüsünden gelir (/demo/personas).
+   Risk değerleri ELLE DEĞİL, koordinasyon modelinin sunucuda yazdığı kayıttan gelir.
    ============================================================ */
-const SEED = [
-  { name: "Zeynep Kaya", handle: "zeynepk", sealed: true, nid: "aa1", year: 1998,
-    events: ["teknofest-2026"], demoRisk: 0.03,
-    text: "TEKNOFEST'te sahada gördüklerim inanılmazdı. Genç mühendislerin enerjisi ayrı 🚀" },
-  { name: "Gündem Sesi", handle: "gundem_sesi_44", sealed: true, nid: "cc3", year: 1995,
-    events: [], demoRisk: 0.28, campaign: true,
-    text: "HERKES BUNU PAYLAŞSIN!! Gündemi biz belirleriz, ses çıkaralım 🔁🔁 #manşet #yükselt" },
-  { name: "Mehmet Aydın", handle: "mehmeta", sealed: true, nid: "bb2", year: 1990,
-    events: [], demoRisk: 0.06,
-    text: "Yeni yazı dizim: yerli teknoloji ekosistemi nasıl büyüyor? İlk bölüm yolda." },
-  { name: "trend yukselt", handle: "trend_yukselt_x", sealed: false, year: null,
-    events: [], demoRisk: 0.72, campaign: true,
-    text: "gündem gündem gündem paylaş paylaş 🔁 #manşet #yükselt link: bit.ly/xxxx" },
-  { name: "yeni kullanıcı", handle: "newbie_909", sealed: false, year: null,
-    events: [], demoRisk: 0.35,
-    text: "merhaba, NSosyal'e yeni katıldım 👋" },
-];
+const DEMO_TOKENS_KEY = "muhur-demo-attendance-v2";
 
-/* Demo hesaplar: her tarayıcıya özel bir ek alır (aynı kişi aynı etkinliğe iki kez
-   katılamadığı için) ve katılım kanıtları tarayıcıda saklanır. */
-const DEMO_SEED_KEY = "muhur-demo-seed";
-const DEMO_TOKENS_KEY = "muhur-demo-attendance";
-const DEMO_RISK_NOTE = "DEMO: elle girilmiş değer — model bağlanınca kalkacak";
-
-function demoSeed() {
-  let s = localStorage.getItem(DEMO_SEED_KEY);
-  if (!s) { s = Math.random().toString(36).slice(2, 10); localStorage.setItem(DEMO_SEED_KEY, s); }
-  return s;
-}
-
-async function sealDemoAccount(a) {
-  const seed = demoSeed();
-  const r = await api.popVerify(`${a.nid}-${seed}`, a.year);
+/* Mühürlü demo hesap: PoP alır, normal öğrenciler bir etkinliğe check-in yapar
+   (aynı kişi aynı etkinliğe iki kez katılamadığı için kanıt tarayıcıda saklanır). */
+async function sealPersona(p) {
+  const r = await api.popVerify(p.national_id, 2003);
   const saved = JSON.parse(localStorage.getItem(DEMO_TOKENS_KEY) || "{}");
   const attendance = [];
-  for (const ev of a.events) {
-    const key = `${seed}:${a.handle}:${ev}`;
+  if (!p.alert_id) {
+    const key = `${p.national_id}:teknofest-2026`;
     if (!saved[key]) {
       try {
-        const q = await api.poaChallenge(ev);
+        const q = await api.poaChallenge("teknofest-2026");
         const c = await api.poaCheckin(q.checkin_token, r.personhood_token);
         saved[key] = c.attendance_token;
       } catch (e) {
-        if (e.status !== 409) throw e;   // zaten katılmış ama kanıt kaybolmuş
+        if (e.status !== 409) throw e;   // zaten katılmış ama kanıt bu tarayıcıda yok
       }
     }
     if (saved[key]) attendance.push(saved[key]);
+    localStorage.setItem(DEMO_TOKENS_KEY, JSON.stringify(saved));
   }
-  localStorage.setItem(DEMO_TOKENS_KEY, JSON.stringify(saved));
   return { token: r.personhood_token, attendance };
 }
 
@@ -253,12 +229,11 @@ const UNSEALED_RESULT = {
 
 function NSosyalApp({ user }) {
   const [authors, setAuthors] = useState(null);
-  const [posts, setPosts] = useState(SEED);
+  const [posts, setPosts] = useState([]);
   const [filter, setFilter] = useState("all");
-  const [campaign, setCampaign] = useState(false);
   const [draft, setDraft] = useState("");
   const [userResult, setUserResult] = useState(null);
-  const cache = useRef({});
+  const [loadErr, setLoadErr] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -267,37 +242,24 @@ function NSosyalApp({ user }) {
         const ur = await api.trustScore(user.token, []);
         if (alive) setUserResult(ur);
       } catch {}
-      const map = {};
-      for (const a of SEED) {
-        if (!a.sealed) {
-          // Mühürsüz hesap: PoP token'ı yok, sunucuya sorulacak bir kanıt da yok.
-          map[a.handle] = { sealed: false, result: UNSEALED_RESULT };
-          continue;
+      try {
+        const { personas } = await api.demoPersonas();
+        const map = {};
+        for (const p of personas) {
+          let result = UNSEALED_RESULT;
+          if (p.sealed) {
+            const s = await sealPersona(p);
+            result = await api.trustScore(s.token, s.attendance);
+          }
+          map[p.handle] = { sealed: p.sealed, result, alertLevel: p.alert_level, alertId: p.alert_id };
         }
-        const p = await sealDemoAccount(a);
-        cache.current[a.handle] = p;
-        await api.demoRisk(p.token, a.demoRisk, DEMO_RISK_NOTE);
-        const result = await api.trustScore(p.token, p.attendance);
-        map[a.handle] = { sealed: true, result };
+        if (alive) { setAuthors(map); setPosts(personas); }
+      } catch (e) {
+        if (alive) setLoadErr(String(e.message || e));
       }
-      if (alive) setAuthors(map);
     })();
     return () => { alive = false; };
   }, [user]);
-
-  async function toggleCampaign() {
-    const next = !campaign; setCampaign(next);
-    if (!authors) return;
-    const upd = { ...authors };
-    for (const a of SEED) {
-      if (!a.campaign || !a.sealed) continue;
-      const p = cache.current[a.handle];
-      await api.demoRisk(p.token, next ? 0.9 : a.demoRisk, DEMO_RISK_NOTE);
-      const result = await api.trustScore(p.token, p.attendance);
-      upd[a.handle] = { sealed: true, result };
-    }
-    setAuthors(upd);
-  }
 
   function share() {
     if (!draft.trim()) return;
@@ -350,22 +312,23 @@ function NSosyalApp({ user }) {
           </div>
         </div>
 
-        {/* juri / simulasyon paneli */}
-        <div className="bg-ink text-white rounded-2xl p-4 mb-4">
+        {/* topluluk paneli bağlantısı */}
+        <a href="#/panel" className="block bg-ink text-white rounded-2xl p-4 mb-4 hover:bg-ink/90 transition">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm font-700">Jüri / simülasyon paneli</div>
+              <div className="text-sm font-700">Topluluk yöneticisi paneli</div>
               <div className="text-xs text-white/60">
-                Koordineli (CIB) bir kampanya başlat — MÜHÜR'ün, hesaplar gerçek insan olsa bile nasıl yakaladığını gör.
+                Bu akıştaki hesapların hangi koordinasyon uyarılarına düştüğünü, nedenlerini ve olası
+                masum açıklamalarını gör. Son kararı yönetici verir.
               </div>
             </div>
-            <button onClick={toggleCampaign}
-              className={`shrink-0 px-3 py-2 rounded-lg text-sm font-600 transition
-                ${campaign ? "bg-brand text-white" : "bg-white/15 text-white hover:bg-white/25"}`}>
-              {campaign ? "Kampanya aktif ✓" : "Kampanyayı tetikle"}
-            </button>
+            <span className="shrink-0 px-3 py-2 rounded-lg text-sm font-600 bg-white/15">Panele git →</span>
           </div>
-        </div>
+        </a>
+
+        {loadErr && (
+          <p className="mb-3 text-sm text-brand">Akış yüklenemedi: {loadErr} — backend açık mı?</p>
+        )}
 
         {/* filtre (kullanici kontrollu — algoritma degil) */}
         <div className="flex items-center gap-2 mb-3 text-sm flex-wrap">
@@ -384,8 +347,7 @@ function NSosyalApp({ user }) {
         ) : (
           <div className="space-y-3">
             {visible.map((p, i) => (
-              <PostCard key={p.handle + i} post={p} meta={meta(p.handle)} campaign={campaign}
-                        isCampaignAccount={SEED.find((s) => s.handle === p.handle)?.campaign} />
+              <PostCard key={p.handle + i} post={p} meta={meta(p.handle)} />
             ))}
             {visible.length === 0 && (
               <p className="text-sm text-ink-soft py-8 text-center">
@@ -397,18 +359,18 @@ function NSosyalApp({ user }) {
       </main>
 
       <footer className="max-w-2xl mx-auto px-4 py-6 text-[11px] text-ink-soft font-mono border-t border-hair">
-        mock issuer · e-Devlet entegrasyonu YOK · güven skorları canlı backend'den (Ed25519 imzalı token) · örnek hesapların risk değerleri DEMO, elle girilmiş
+        mock issuer · e-Devlet entegrasyonu YOK · güven skorları canlı backend'den (Ed25519 imzalı token) · hesaplar ve paylaşımlar sentetik DEMO kampüsünden · risk değerleri koordinasyon modelinden
       </footer>
     </div>
   );
 }
 
-function PostCard({ post, meta, campaign, isCampaignAccount }) {
+function PostCard({ post, meta }) {
   const [open, setOpen] = useState(false);
   const [liked, setLiked] = useState(false);
   const r = meta?.result;
   const b = r ? BAND[r.band] : null;
-  const flagged = campaign && isCampaignAccount && r && r.band === "low";
+  const flagged = meta?.alertLevel === "yüksek";
 
   return (
     <article className={`bg-surface rounded-2xl ring-1 p-4 ${flagged ? "ring-brand/40" : "ring-hair"}`}>
@@ -433,8 +395,9 @@ function PostCard({ post, meta, campaign, isCampaignAccount }) {
 
           {flagged && (
             <div className="mt-2 text-xs text-brand bg-brand/5 ring-1 ring-brand/20 rounded-lg px-3 py-1.5">
-              ⚠ Koordineli kampanya şüphesi — bu hesap gerçek bir insan olsa da, davranışı
-              otomatik/eşzamanlı bir kampanyaya benziyor.
+              ⚠ Bu hesap, model tarafından yüksek riskli bulunan bir koordinasyon kümesinde.
+              Bu bir yargı değil; topluluk yöneticisinin incelemesini bekliyor.{" "}
+              <a href={`#/panel/${meta.alertId}`} className="underline font-600">Uyarıyı gör</a>
             </div>
           )}
 
@@ -488,6 +451,14 @@ export default function App() {
   const [screen, setScreen] = useState("login");
   const [edevlet, setEdevlet] = useState(false);
   const [user, setUser] = useState(null);
+  const [hash, setHash] = useState(window.location.hash);
+  useEffect(() => {
+    const f = () => setHash(window.location.hash);
+    window.addEventListener("hashchange", f);
+    return () => window.removeEventListener("hashchange", f);
+  }, []);
+
+  if (hash.startsWith("#/panel")) return <Panel />;
 
   return (
     <>

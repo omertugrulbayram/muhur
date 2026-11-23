@@ -40,7 +40,21 @@ export const api = {
     post("/poa/checkin", { checkin_token, personhood_token }),
   trustScore: (personhood_token, attendance_tokens = []) =>
     post("/trust/score", { personhood_token, attendance_tokens }),
-  // SİMÜLASYON: model bağlanana kadar demo hesaplara elle risk değeri yazar
-  demoRisk: (personhood_token, probability, note) =>
-    post("/demo/risk", { personhood_token, probability, note }, org),
+  // SİMÜLASYON: sentetik demo kampüsünden seçilmiş hesaplar (riskleri modelden)
+  demoPersonas: () => request("GET", "/demo/personas"),
 };
+
+// Topluluk yöneticisi paneli — organizatör anahtarı ister.
+export function organizerApi(key) {
+  const h = { "X-Organizer-Key": key };
+  return {
+    me: () => request("GET", "/organizer/me", undefined, h),
+    alerts: (minLevel = "düşük") =>
+      request("GET", "/organizer/alerts?min_level=" + encodeURIComponent(minLevel), undefined, h),
+    alert: (id) => request("GET", "/organizer/alerts/" + encodeURIComponent(id), undefined, h),
+    review: (id, decision, note) =>
+      post("/organizer/alerts/" + encodeURIComponent(id) + "/review", { decision, note: note || null }, h),
+    model: () => request("GET", "/organizer/model", undefined, h),
+    events: () => request("GET", "/organizer/events", undefined, h),
+  };
+}

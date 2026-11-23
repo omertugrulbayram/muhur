@@ -22,6 +22,7 @@ os.environ["MUHUR_POA_SIGNING_KEY"] = _pem()
 os.environ["MUHUR_PSEUDONYM_SECRET"] = "test-pseudonym-secret"
 os.environ["MUHUR_DEMO_ORGANIZER_KEY"] = "test-org-key"
 os.environ["MUHUR_RATE_LIMIT_PER_MIN"] = "0"
+os.environ["MUHUR_DEMO_CAMPUS"] = "0"           # analiz yalnız ilgili testlerde
 os.environ["MUHUR_DB_PATH"] = os.path.join(tempfile.mkdtemp(), "boot.db")
 
 import pytest  # noqa: E402

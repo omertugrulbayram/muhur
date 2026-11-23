@@ -10,7 +10,7 @@
 [![Durum](https://img.shields.io/badge/durum-prototip%20aktif-2ea44f?style=for-the-badge)](#-proje-durumu)
 [![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](#-teknoloji-yığını)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi&logoColor=white)](#-teknoloji-yığını)
-[![Testler](https://img.shields.io/badge/testler-62%2F62%20geçti-2ea44f?style=for-the-badge)](#-test)
+[![Testler](https://img.shields.io/badge/testler-73%2F73%20geçti-2ea44f?style=for-the-badge)](#-test)
 [![Lisans](https://img.shields.io/badge/lisans-belirtilecek-lightgrey?style=for-the-badge)](#-lisans)
 
 <br>
@@ -125,9 +125,9 @@ Aşağıdaki sonuçlar **uydurma değildir** — bu repodaki kod çalıştırıl
 | Veritabanı | SQLite (kullanılmış QR'lar, katılımlar, organizatörler, risk kayıtları) | ✅ çalışıyor |
 | Kimlik (PoP) | PyJWT · **Ed25519** imza · HMAC-SHA256 takma kimlik | ✅ çalışıyor (issuer simülasyon) |
 | Katılım (PoA) | Ed25519 imzalı tek kullanımlık QR + imzalı katılım kanıtı | ✅ çalışıyor |
-| Yapay Zekâ | scikit-learn Gradient Boosting · networkx | 🟡 sentetik veride, arayüze henüz bağlı değil |
+| Yapay Zekâ | scikit-learn: açıklanabilir lojistik regresyon (küme düzeyinde koordinasyon), TF-IDF | ✅ arayüze bağlı · 🟡 yalnız sentetik veride ölçüldü |
 | Ön Yüz | React (Vite) + Tailwind | ✅ çalışıyor |
-| Test | pytest (62 test) + saldırı koşumu (15 saldırı) | ✅ |
+| Test | pytest (73 test) + saldırı koşumu (15 saldırı) | ✅ |
 | Planlanan | GraphSAGE (GNN), Türkçe metin benzerliği | ❌ henüz yok |
 
 ## 🚀 Kurulum ve Çalıştırma (Windows)
@@ -145,6 +145,34 @@ Sonra tarayıcıda aç:
 - 📘 API dokümantasyonu → `http://127.0.0.1:8000/docs`
 - 💓 Sağlık kontrolü → `http://127.0.0.1:8000/health`
 
+## 🖥️ Arayüz
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+- NSosyal akışı → `http://localhost:5173/` (e-Devlet simülasyonu ile giriş)
+- **Topluluk yöneticisi paneli** → `http://localhost:5173/#/panel` (demo kulüp anahtarı hazır gelir)
+
+## 🧠 Koordinasyon modeli
+
+```powershell
+cd backend
+.venv\Scripts\python -m app.ml.train_coordination
+```
+
+12 sentetik kampüs dünyasında eğitir, görülmemiş 8 dünyada test eder:
+
+| | LR (ürün) | Basit kural |
+|---|---|---|
+| F1 | **0.89** | 0.36 |
+| Uyarıya düşen normal öğrenci | **%3** | %40 |
+| Kulüp duyurusunda yanlış alarm | **%0** | %83 |
+
+Ayrıntı ve zayıf noktalar: [`docs/model_degerlendirme.md`](docs/model_degerlendirme.md)
+
 ## 🔌 API Uçları (v0.4)
 
 | Yöntem | Uç | Yetki | Açıklama |
@@ -156,7 +184,12 @@ Sonra tarayıcıda aç:
 | `POST` | `/poa/challenge` | organizatör | Kendi açık etkinliği için 90 sn'lik tek kullanımlık QR |
 | `POST` | `/poa/checkin` | — | QR + personhood token → imzalı katılım kanıtı (kişi başına etkinlik başına 1) |
 | `POST` | `/trust/score` | — | Yalnız imzalı token'larla çalışır; risk değeri sunucudan gelir |
-| `POST` | `/demo/risk` | organizatör | **SİMÜLASYON:** model bağlanana kadar elle risk değeri (yalnız demo modunda) |
+| `GET` | `/organizer/alerts` | organizatör | Koordinasyon uyarıları (risk sırasıyla, `min_level` filtresi) |
+| `GET` | `/organizer/alerts/{id}` | organizatör | Gerekçeler, masum açıklamalar, ağ grafiği, paylaşımlar, inceleme geçmişi |
+| `POST` | `/organizer/alerts/{id}/review` | organizatör | İnsan kararı: `sorun_yok` / `izle` / `isaretle` + not |
+| `GET` | `/organizer/model` | organizatör | Model kartı: katsayılar, değerlendirme, sınırlar |
+| `GET` | `/demo/personas` | — | **SİMÜLASYON:** akış demosu için sentetik kampüs hesapları |
+| `POST` | `/demo/risk` | organizatör | **SİMÜLASYON:** elle risk değeri (yalnız demo modunda; arayüz kullanmıyor) |
 
 Organizatör yetkisi `X-Organizer-Key` başlığıyla verilir. Anahtarlar veritabanında
 SHA-256 özeti olarak saklanır. Geliştirme ortamında demo kulübün anahtarı
@@ -200,7 +233,8 @@ muhur/
 │       ├── security/     # anahtarlar, token imzalama/doğrulama, istek sınırı
 │       ├── db/           # SQLite kayıtları
 │       ├── poa/          # Proof-of-Attendance — QR + anti-spoofing
-│       ├── ml/           # Sybil/CIB tespit modeli + sentetik veri
+│       ├── ml/           # sentetik kampüs, koordinasyon modeli, eğitim/değerlendirme
+│       ├── analysis/     # modeli ürüne bağlayan katman (uyarılar, panel görünümleri)
 │       ├── trust/        # Güven puanı (saf formül + token doğrulayan servis)
 │       └── main.py       # FastAPI giriş noktası
 ├── attack_harness/       # Saldırı simülasyon scriptleri
@@ -214,9 +248,11 @@ muhur/
 - [x] PoA — organizatör yetkili, tek kullanımlık QR; kalıcı replay listesi; etkinlik başına tek katılım
 - [x] Sybil/CIB baseline model (Gradient Boosting) + benchmark (sentetik)
 - [x] Güven puanı — sunucu tarafında, yalnız imzalı kanıtlarla
-- [ ] Modelin API'ye ve arayüze bağlanması, açıklanabilir uyarılar
-- [ ] Topluluk yöneticisi paneli (şüpheli kümeler, ağ grafiği, insan incelemesi)
-- [ ] Zor normal senaryolarla test, yanlış pozitif raporu
+- [x] Koordinasyon modeli API'ye ve arayüze bağlı, açıklanabilir uyarılar
+- [x] Topluluk yöneticisi paneli (şüpheli kümeler, ağ grafiği, insan incelemesi, model kartı)
+- [x] Zor masum senaryolarla test, yanlış pozitif ölçümü ([`docs/model_degerlendirme.md`](docs/model_degerlendirme.md))
+- [ ] İnternette yayın + demo video
+- [ ] Gerçek kullanıcı testi (onam ve gizlilik planıyla)
 - [ ] GraphSAGE (GNN) ile karşılaştırma
 - [ ] Gerçek e-Devlet / dijital kimlik altyapısına entegrasyon
 

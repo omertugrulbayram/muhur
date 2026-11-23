@@ -65,6 +65,8 @@ class Settings:
         self.enable_demo_endpoints = _bool(
             os.environ.get("MUHUR_ENABLE_DEMO_ENDPOINTS"), default=self.is_dev
         )
+        # Açılışta sentetik demo kampüsü modelle analiz et (uyarıları doldurur).
+        self.demo_campus = _bool(os.environ.get("MUHUR_DEMO_CAMPUS"), default=self.is_dev)
 
         # Sabit kimlikler (token iss/aud/kid)
         self.pop_issuer = "muhur-mock-identity-provider"
