@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+/* ============================================================
+   NSosyal MÜHÜR — demo sosyal platform (mikroblog) jetonlari
+   ============================================================ */
+@theme {
+  --color-bg:         #f5f7f9;
+  --color-surface:    #ffffff;
+  --color-surface-2:  #eef1f4;
+
+  --color-ink:        #15181c;
+  --color-ink-soft:   #5b6570;
+  --color-hair:       #e2e7ec;
+
+  /* NSosyal marka kirmizisi — logo, birincil aksiyon, MÜHÜRLÜ rozeti */
+  --color-brand:      #e0223d;
+  --color-brand-deep: #b81a30;
+
+  /* Guven bantlari */
+  --color-trust-high: #0f7b5a;
+  --color-trust-med:  #c88a1e;
+  --color-trust-low:  #6b7a8d;
+
+  --color-rocket:     #f0641e;   /* roket (begeni) aktif */
+
+  /* e-Devlet (demo) — resmi cagrisim */
+  --color-gov:        #23508c;
+  --color-gov-deep:   #1a3d6b;
+
+  --font-sans:  "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono:  "IBM Plex Mono", ui-monospace, monospace;
+  --font-serif: "IBM Plex Serif", Georgia, serif;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* muhur bas animasyonu (login -> app gecisi ve rozet) */
+@keyframes stamp-press {
+  0%{transform:scale(1.6) rotate(-16deg);opacity:0}
+  55%{transform:scale(.9) rotate(-6deg);opacity:1}
+  72%{transform:scale(1.06) rotate(-9deg)}
+  100%{transform:scale(1) rotate(-7deg);opacity:1}
+}
+.seal-stamped{animation:stamp-press .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes ink-fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.ink-in{animation:ink-fade .35s ease both}
+.seal-ring-text{font-family:var(--font-mono);letter-spacing:.16em}
+@media (prefers-reduced-motion:reduce){.seal-stamped,.ink-in{animation:none}}

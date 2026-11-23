@@ -1,6 +1,7 @@
 """Faz 2 + Faz 4a testleri — PoA anti-spoofing + PoP-PoA sunucu-tarafli baglama."""
 import time
 import jwt
+from app.config import settings
 from app.poa import checkin as poa
 from app.pop import issuer as pop
 
@@ -51,7 +52,7 @@ def test_expired_token_is_rejected():
     now = int(time.time())
     expired = jwt.encode(
         {"event_id": "e", "jti": "j", "iat": now - 1000, "exp": now - 500},
-        poa._SERVER_SECRET, algorithm=poa._ALG,
+        settings.poa_secret, algorithm=settings.alg,
     )
     ptoken = _valid_personhood_token()
     try:
@@ -79,4 +80,4 @@ def test_forged_personhood_claim_is_rejected():
         poa.verify_checkin(token, forged_ptoken, enforce_defenses=True)
         assert False, "sahte personhood token reddedilmeliydi"
     except poa.CheckinError as e:
-        assert str(e) == "personhood_token_invalid"
+        assert str(e) == "personhood_invalid"
