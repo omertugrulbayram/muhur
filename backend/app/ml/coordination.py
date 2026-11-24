@@ -83,6 +83,21 @@ FEATURE_LABELS_TR = {
     "shared_dept_frac": "aynı bölüm",
 }
 
+FEATURE_LABELS_EN = {
+    "log_size": "cluster size",
+    "mean_similarity": "message similarity",
+    "exact_dup_frac": "identical text",
+    "log_span_hours": "time spread",
+    "new_account_frac": "new-account share",
+    "creation_spread": "account-creation spread",
+    "dormant_frac": "dormant accounts waking up",
+    "follow_density": "mutual-follow density",
+    "hashtag_link_rate": "hashtag/link density",
+    "shared_event_frac": "shared event consistent with content (PoA)",
+    "shared_club_frac": "shared club consistent with content",
+    "shared_dept_frac": "same department",
+}
+
 CONTEXT_FEATURES = {"shared_event_frac", "shared_club_frac", "shared_dept_frac"}
 
 _HASHTAG_RE = re.compile(r"#\w+")
@@ -338,22 +353,98 @@ class CoordinationModel:
 
 
 # ---------------------------------------------------------------- açıklama
-def _dur(minutes: float) -> str:
+def _dur(minutes: float, lang: str = "tr") -> str:
+    en = lang == "en"
     if minutes < 90:
-        return f"{max(1, round(minutes))} dakika"
+        v = max(1, round(minutes))
+        return (f"{v} minute" + ("s" if v != 1 else "")) if en else f"{v} dakika"
     if minutes < 48 * 60:
-        return f"{round(minutes / 60)} saat"
-    return f"{round(minutes / DAY)} gün"
+        v = round(minutes / 60)
+        return f"{v} hours" if en else f"{v} saat"
+    v = round(minutes / DAY)
+    return f"{v} days" if en else f"{v} gün"
 
 
-def _part(x: float, n: int) -> str:
+def _part(x: float, n: int, lang: str = "tr") -> str:
     """'%88 (7/8 hesap)' — Türkçe ek gerektirmeyen oran yazımı."""
+    if lang == "en":
+        return f"{round(100 * x)}% ({round(x * n)}/{n} accounts)"
     return f"%{round(100 * x)} ({round(x * n)}/{n} hesap)"
 
 
-def explain(feats: dict, ctx: dict, contrib: dict[str, float]) -> dict:
+def _explain_en(feats: dict, ctx: dict, contrib: dict[str, float]) -> dict:
+    """explain() ile aynı mantık ve eşikler, İngilizce cümleler."""
+    n = ctx["n"]
+
+    def P(x):
+        return _part(x, n, "en")
+
+    fact = {
+        "log_size": f"The cluster has {n} accounts.",
+        "mean_similarity": f"Average text similarity of the posts: {round(100 * feats['mean_similarity'])}%.",
+        "exact_dup_frac": f"Share of identical texts: {round(100 * feats['exact_dup_frac'])}%.",
+        "log_span_hours": f"All similar posts were made within {_dur(ctx['span_min'], 'en')}.",
+        "new_account_frac": f"Accounts created in the last 30 days: {P(feats['new_account_frac'])}.",
+        "creation_spread": f"Spread between account creation dates: {_dur(ctx['creation_range_days'] * DAY, 'en')}.",
+        "dormant_frac": f"Accounts that had barely posted before: {P(feats['dormant_frac'])}.",
+        "follow_density": f"Follow density inside the cluster: {round(100 * feats['follow_density'])}%.",
+        "hashtag_link_rate": f"Posts containing a hashtag or link: {round(100 * feats['hashtag_link_rate'])}%.",
+        "shared_event_frac": (f"Accounts that attended a common event: {P(ctx['raw_event_frac'])}; "
+                              f"{round(100 * ctx['event_mention_frac'])}% of the posts mention that event."),
+        "shared_club_frac": (f"Accounts in the same club: {P(ctx['raw_club_frac'])}; "
+                             f"{round(100 * ctx['club_mention_frac'])}% of the posts mention the club."),
+        "shared_dept_frac": f"Accounts from the same department: {P(feats['shared_dept_frac'])}.",
+    }
+
+    def item(f, w):
+        return {"feature": f, "label": FEATURE_LABELS_EN[f], "weight": round(w, 3), "text": fact[f]}
+
+    signals = [item(f, w) for f, w in sorted(contrib.items(), key=lambda kv: -kv[1]) if w > 0.35][:4]
+    mitigating = [item(f, w) for f, w in sorted(contrib.items(), key=lambda kv: kv[1]) if w < -0.35][:3]
+
+    innocent = []
+    cautions = []
+    if ctx["event"] and feats["shared_event_frac"] >= 0.3:
+        innocent.append(
+            f"{P(ctx['raw_event_frac'])} attended \"{ctx['event']['name']}\" within 24 hours before "
+            "posting (PoA-verified) and the posts talk about that event. This may be natural "
+            "posting about a shared event.")
+    elif ctx["event"] and ctx["raw_event_frac"] >= 0.3:
+        cautions.append(
+            f"{P(ctx['raw_event_frac'])} attended \"{ctx['event']['name']}\", but only "
+            f"{round(100 * ctx['event_mention_frac'])}% of the posts mention the event. "
+            "The event was not counted as an innocent explanation for these posts.")
+    if ctx["club"] and feats["shared_club_frac"] >= 0.4:
+        innocent.append(
+            f"{P(ctx['raw_club_frac'])} are members of {ctx['club']} and the posts mention the club. "
+            "This may be a club announcement being shared.")
+    if feats["shared_dept_frac"] >= 0.5:
+        innocent.append(
+            f"{P(feats['shared_dept_frac'])} are from {ctx['department']}. This may be natural posting "
+            "about the same course, exam or department news.")
+    if ctx["sealed_frac"] >= 0.6:
+        innocent.append(
+            f"{P(ctx['sealed_frac'])} are verified real people (PoP). That shows they are not bots, "
+            "but on its own it does not prove this is not a coordinated campaign.")
+    if not innocent:
+        innocent.append("No clear shared context (event, club, department) was found. It could still be "
+                        "a shared topic or news story; the content should be reviewed.")
+
+    return {
+        "signals": signals,
+        "mitigating": mitigating,
+        "innocent_explanations": innocent,
+        "cautions": cautions,
+        "pop_context": f"Sealed (PoP) accounts: {P(ctx['sealed_frac'])}. PoP status is not part of "
+                       "the risk calculation.",
+        "caveat": ("This is an alert, not an accusation. The model never labels an account as a bot or "
+                   "malicious; the final decision belongs to the community moderator."),
+    }
+
+
+def explain(feats: dict, ctx: dict, contrib: dict[str, float], lang: str = "tr") -> dict:
     """
-    Model katkılarını insan-okunur cümlelere çevirir.
+    Model katkılarını insan-okunur cümlelere çevirir (lang: "tr" | "en").
 
     Cümleler TARAFSIZDIR: yalnız ölçülen değeri söyler. Bir özelliğin riski
     artırdığı ya da azalttığı bilgisi cümleden değil, modelin katkısından gelir
@@ -362,6 +453,8 @@ def explain(feats: dict, ctx: dict, contrib: dict[str, float]) -> dict:
 
     Döner: {signals, mitigating, innocent_explanations, caveat}
     """
+    if lang == "en":
+        return _explain_en(feats, ctx, contrib)
     n = ctx["n"]
     fact = {
         "log_size": f"Kümede {n} hesap var.",
@@ -445,6 +538,7 @@ def analyze(campus: Campus, model: CoordinationModel | None = None) -> list[dict
             "features": {k: round(v, 4) for k, v in feats.items()},
             "contributions": {k: round(v, 4) for k, v in contrib.items()},
             "context": ctx, "explanation": explain(feats, ctx, contrib),
+            "explanation_en": explain(feats, ctx, contrib, "en"),
             "model_version": model.version,
         })
     out.sort(key=lambda a: -a["risk"])

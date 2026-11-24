@@ -20,7 +20,8 @@ class TrustInputError(Exception):
     pass
 
 
-def trust_for_tokens(personhood_token: str, attendance_tokens: list[str] | None) -> dict:
+def trust_for_tokens(personhood_token: str, attendance_tokens: list[str] | None,
+                     lang: str = "tr") -> dict:
     try:
         pop = verify_personhood_token(personhood_token)
     except PersonhoodTokenError as e:
@@ -41,7 +42,8 @@ def trust_for_tokens(personhood_token: str, attendance_tokens: list[str] | None)
             rejected.append(str(e))
 
     risk = store.latest_risk(subject)
-    result = compute_trust_score(pop, events, risk, rejected_attendance=len(rejected))
+    result = compute_trust_score(pop, events, risk, rejected_attendance=len(rejected),
+                                 lang="en" if lang == "en" else "tr")
     result["subject"] = subject
     result["rejected_attendance_reasons"] = rejected
     if risk:

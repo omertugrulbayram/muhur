@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { DEMO_ORGANIZER_KEY, organizerApi } from "./api";
+import { EN, L } from "./i18n";
 import { TopNav } from "./shared";
 
 /* ============================================================
@@ -16,7 +17,20 @@ const C_UP = "#e34948";         // riski artırır
 const C_DOWN = "#2a78d6";       // riski azaltır
 const C_FOLLOW = "#b8c0c9";
 
-const FEATURE_TR = {
+const FEATURE_TR = EN ? {
+  log_size: "Cluster size",
+  mean_similarity: "Message similarity",
+  exact_dup_frac: "Identical text",
+  log_span_hours: "Time spread",
+  new_account_frac: "New-account share",
+  creation_spread: "Creation-date spread",
+  dormant_frac: "Dormant, then active",
+  follow_density: "In-cluster follows",
+  hashtag_link_rate: "Hashtag / link",
+  shared_event_frac: "Shared event (PoA)",
+  shared_club_frac: "Shared club",
+  shared_dept_frac: "Same department",
+} : {
   log_size: "Küme büyüklüğü",
   mean_similarity: "Mesaj benzerliği",
   exact_dup_frac: "Birebir aynı metin",
@@ -32,26 +46,26 @@ const FEATURE_TR = {
 };
 
 const LEVEL = {
-  "yüksek": { label: "Yüksek", icon: "▲", cls: "bg-[#d03b3b] text-white" },
-  "orta": { label: "Orta", icon: "●", cls: "bg-[#fab219] text-ink" },
-  "düşük": { label: "Düşük", icon: "○", cls: "bg-surface-2 text-ink-soft ring-1 ring-hair" },
+  "yüksek": { label: L("Yüksek", "High"), icon: "▲", cls: "bg-[#d03b3b] text-white" },
+  "orta": { label: L("Orta", "Medium"), icon: "●", cls: "bg-[#fab219] text-ink" },
+  "düşük": { label: L("Düşük", "Low"), icon: "○", cls: "bg-surface-2 text-ink-soft ring-1 ring-hair" },
 };
 const STATUS = {
-  acik: { label: "İncelenmedi", cls: "text-ink-soft" },
-  sorun_yok: { label: "Sorun yok", cls: "text-trust-high" },
-  izle: { label: "İzlemede", cls: "text-trust-med" },
-  isaretle: { label: "İşaretlendi", cls: "text-brand" },
+  acik: { label: L("İncelenmedi", "Not reviewed"), cls: "text-ink-soft" },
+  sorun_yok: { label: L("Sorun yok", "No issue"), cls: "text-trust-high" },
+  izle: { label: L("İzlemede", "Watching"), cls: "text-trust-med" },
+  isaretle: { label: L("İşaretlendi", "Flagged"), cls: "text-brand" },
 };
 const DECISIONS = [
-  ["sorun_yok", "Sorun yok", "Doğal bir paylaşım; uyarıyı kapat."],
-  ["izle", "İzle", "Şimdilik karar verme, takipte tut."],
-  ["isaretle", "İşaretle", "Koordineli görünüyor; topluluk kurallarına göre ele al."],
+  ["sorun_yok", L("Sorun yok", "No issue"), L("Doğal bir paylaşım; uyarıyı kapat.", "Natural posting; close the alert.")],
+  ["izle", L("İzle", "Watch"), L("Şimdilik karar verme, takipte tut.", "Don't decide yet; keep an eye on it.")],
+  ["isaretle", L("İşaretle", "Flag"), L("Koordineli görünüyor; topluluk kurallarına göre ele al.", "Looks coordinated; handle it under the community rules.")],
 ];
 
-const fmtDur = (m) => (m < 90 ? `${Math.max(1, Math.round(m))} dk` : m < 2880 ? `${Math.round(m / 60)} sa` : `${Math.round(m / 1440)} gün`);
-const fmtDate = (t) => new Date(t * 1000).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" });
+const fmtDur = (m) => (m < 90 ? `${Math.max(1, Math.round(m))} ${L("dk", "min")}` : m < 2880 ? `${Math.round(m / 60)} ${L("sa", "h")}` : `${Math.round(m / 1440)} ${L("gün", "days")}`);
+const fmtDate = (t) => new Date(t * 1000).toLocaleString(EN ? "en-GB" : "tr-TR", { dateStyle: "short", timeStyle: "short" });
 
-const DemoBadge = ({ children = "DEMO VERİ" }) => (
+const DemoBadge = ({ children = L("DEMO VERİ", "DEMO DATA") }) => (
   <span className="text-[10px] font-700 tracking-wide px-2 py-0.5 rounded bg-brand/10 text-brand ring-1 ring-brand/20">
     {children}
   </span>
@@ -92,12 +106,12 @@ export default function Panel() {
 
   return (
     <div className="min-h-screen">
-      <TopNav active="panel" wide right={org ? <span className="hidden md:inline font-600">{org.name}</span> : null} />
+      <TopNav active="panel" wide right={org ? <span className="hidden md:inline font-600">{EN && org.id === "demo-kulup" ? "Demo Student Club (DEMO)" : org.name}</span> : null} />
       <div className="bg-surface border-b border-hair">
         <div className="max-w-7xl mx-auto px-4 py-2 flex items-center gap-2 text-sm">
-          <a href="#/panel" className={`px-3 py-1.5 rounded-lg ${route.view === "alerts" ? "bg-ink text-white" : "text-ink-soft hover:text-ink"}`}>Uyarılar</a>
-          <a href="#/panel/model" className={`px-3 py-1.5 rounded-lg ${route.view === "model" ? "bg-ink text-white" : "text-ink-soft hover:text-ink"}`}>Model kartı</a>
-          <span className="ml-auto text-xs text-ink-soft hidden sm:inline">Uyarı bir suçlama değildir · son karar yöneticidedir</span>
+          <a href="#/panel" className={`px-3 py-1.5 rounded-lg ${route.view === "alerts" ? "bg-ink text-white" : "text-ink-soft hover:text-ink"}`}>{L("Uyarılar", "Alerts")}</a>
+          <a href="#/panel/model" className={`px-3 py-1.5 rounded-lg ${route.view === "model" ? "bg-ink text-white" : "text-ink-soft hover:text-ink"}`}>{L("Model kartı", "Model card")}</a>
+          <span className="ml-auto text-xs text-ink-soft hidden sm:inline">{L("Uyarı bir suçlama değildir · son karar yöneticidedir", "An alert is not an accusation · the moderator makes the final call")}</span>
         </div>
       </div>
 
@@ -116,12 +130,12 @@ function KeyLogin({ initial, onSubmit, error }) {
   const [v, setV] = useState(initial);
   return (
     <div className="max-w-md mx-auto mt-16 bg-surface rounded-2xl ring-1 ring-hair p-6">
-      <h2 className="text-lg font-700">Organizatör girişi</h2>
-      <p className="text-sm text-ink-soft mt-1">Panel yalnız topluluk yöneticilerine açıktır. Demo kulübün anahtarı hazır yazılı.</p>
+      <h2 className="text-lg font-700">{L("Organizatör girişi", "Organizer sign-in")}</h2>
+      <p className="text-sm text-ink-soft mt-1">{L("Panel yalnız topluluk yöneticilerine açıktır. Demo kulübün anahtarı hazır yazılı.", "The panel is only open to community moderators. The demo club's key is pre-filled.")}</p>
       <input value={v} onChange={(e) => setV(e.target.value)} type="password"
         className="mt-4 w-full font-mono text-sm px-3 py-2.5 rounded-lg bg-surface-2 ring-1 ring-hair outline-none focus:ring-ink" />
-      {error && <p className="mt-2 text-sm text-brand">{error === "organizer_key_invalid" ? "Anahtar geçersiz." : `${error} — backend açık mı?`}</p>}
-      <button onClick={() => onSubmit(v)} className="mt-4 w-full py-2.5 rounded-xl bg-ink text-white font-600">Giriş</button>
+      {error && <p className="mt-2 text-sm text-brand">{error === "organizer_key_invalid" ? L("Anahtar geçersiz.", "Invalid key.") : `${error} — ${L("backend açık mı?", "is the backend running?")}`}</p>}
+      <button onClick={() => onSubmit(v)} className="mt-4 w-full py-2.5 rounded-xl bg-ink text-white font-600">{L("Giriş", "Sign in")}</button>
     </div>
   );
 }
@@ -148,14 +162,15 @@ function AlertsView({ api, selectedId }) {
       <aside className="lg:sticky lg:top-28">
         <div className="bg-surface rounded-2xl ring-1 ring-hair p-3">
           <div className="flex items-center justify-between px-1">
-            <h2 className="font-700">Koordinasyon uyarıları</h2>
-            {alerts && <span className="text-xs text-ink-soft">{alerts.length} uyarı · {open} incelenmedi</span>}
+            <h2 className="font-700">{L("Koordinasyon uyarıları", "Coordination alerts")}</h2>
+            {alerts && <span className="text-xs text-ink-soft">{alerts.length} {L("uyarı", "alerts")} · {open} {L("incelenmedi", "not reviewed")}</span>}
           </div>
           <p className="px-1 mt-1 text-xs text-ink-soft leading-snug">
-            Kısa sürede benzer şeyler paylaşan hesap grupları. Uyarı bir suçlama değildir; incelemen için öneridir.
+            {L("Kısa sürede benzer şeyler paylaşan hesap grupları. Uyarı bir suçlama değildir; incelemen için öneridir.",
+              "Groups of accounts posting similar things in a short time. An alert is not an accusation; it is a suggestion for your review.")}
           </p>
-          <div className="flex gap-1 mt-3 text-xs" role="group" aria-label="Risk düzeyi filtresi">
-            {[["yüksek", "Yalnız yüksek"], ["orta", "Orta ve üstü"], ["düşük", "Tümü"]].map(([v, l]) => (
+          <div className="flex gap-1 mt-3 text-xs" role="group" aria-label={L("Risk düzeyi filtresi", "Risk level filter")}>
+            {[["yüksek", L("Yalnız yüksek", "High only")], ["orta", L("Orta ve üstü", "Medium and up")], ["düşük", L("Tümü", "All")]].map(([v, l]) => (
               <button key={v} onClick={() => setMinLevel(v)}
                 className={`px-2.5 py-1 rounded-full ring-1 ${minLevel === v ? "bg-ink text-white ring-ink" : "ring-hair text-ink-soft hover:text-ink"}`}>
                 {l}
@@ -171,7 +186,7 @@ function AlertsView({ api, selectedId }) {
                 className={`block bg-surface rounded-xl ring-1 p-3 transition ${a.id === selectedId ? "ring-ink" : "ring-hair hover:ring-ink/40"}`}>
                 <div className="flex items-center gap-2">
                   <LevelChip level={a.level} risk={a.risk} />
-                  <span className="text-xs text-ink-soft">{a.size} hesap · {fmtDur(a.span_min)}</span>
+                  <span className="text-xs text-ink-soft">{a.size} {L("hesap", "accounts")} · {fmtDur(a.span_min)}</span>
                   <span className={`ml-auto text-[11px] font-600 ${STATUS[a.status].cls}`}>{STATUS[a.status].label}</span>
                 </div>
                 <p className="mt-2 text-sm leading-snug line-clamp-2">“{a.sample_text}”</p>
@@ -179,13 +194,13 @@ function AlertsView({ api, selectedId }) {
               </a>
             </li>
           ))}
-          {alerts?.length === 0 && <li className="text-sm text-ink-soft p-3">Bu filtreyle uyarı yok.</li>}
+          {alerts?.length === 0 && <li className="text-sm text-ink-soft p-3">{L("Bu filtreyle uyarı yok.", "No alerts with this filter.")}</li>}
         </ul>
       </aside>
 
       <section>
         {selectedId ? <AlertDetail api={api} id={selectedId} onReviewed={() => setReload((x) => x + 1)} />
-          : <p className="text-sm text-ink-soft p-6">Soldan bir uyarı seç.</p>}
+          : <p className="text-sm text-ink-soft p-6">{L("Soldan bir uyarı seç.", "Pick an alert on the left.")}</p>}
       </section>
     </div>
   );
@@ -214,7 +229,7 @@ function AlertDetail({ api, id, onReviewed }) {
   useEffect(() => { setD(null); setShowTruth(false); setShowAllPosts(false); load(); }, [id]); // eslint-disable-line
 
   if (err) return <p className="text-sm text-brand p-4">{err}</p>;
-  if (!d) return <p className="text-sm text-ink-soft p-6">Yükleniyor…</p>;
+  if (!d) return <p className="text-sm text-ink-soft p-6">{L("Yükleniyor…", "Loading…")}</p>;
   const exp = d.explanation;
   const posts = showAllPosts ? d.posts : d.posts.slice(0, 8);
 
@@ -225,12 +240,12 @@ function AlertDetail({ api, id, onReviewed }) {
         <div className="flex flex-wrap items-center gap-3">
           <LevelChip level={d.level} />
           <span className="text-2xl font-700 font-mono">{Math.round(d.risk * 100)}%</span>
-          <span className="text-sm text-ink-soft">koordinasyon riski</span>
+          <span className="text-sm text-ink-soft">{L("koordinasyon riski", "coordination risk")}</span>
           <span className={`ml-auto text-sm font-600 ${STATUS[d.status].cls}`}>{STATUS[d.status].label}</span>
         </div>
         <div className="mt-2 text-sm text-ink-soft flex flex-wrap gap-x-4 gap-y-1">
-          <span>{d.size} hesap</span><span>{d.n_posts} paylaşım</span>
-          <span>{fmtDur(d.span_min)} içinde</span><span>ilk paylaşım: {d.first_post}</span>
+          <span>{d.size} {L("hesap", "accounts")}</span><span>{d.n_posts} {L("paylaşım", "posts")}</span>
+          <span>{L(`${fmtDur(d.span_min)} içinde`, `within ${fmtDur(d.span_min)}`)}</span><span>{L("ilk paylaşım", "first post")}: {d.first_post}</span>
           <span className="font-mono text-xs self-center">{d.id} · model {d.model_version}</span>
         </div>
         <div className="mt-3 text-[13px] bg-surface-2 rounded-lg px-3 py-2 text-ink-soft">
@@ -239,7 +254,7 @@ function AlertDetail({ api, id, onReviewed }) {
       </Card>
 
       <div className="grid xl:grid-cols-2 gap-4">
-        <Card title="Neden dikkat çekti?">
+        <Card title={L("Neden dikkat çekti?", "Why was this flagged?")}>
           {exp.signals.length ? (
             <ul className="space-y-2">
               {exp.signals.map((s) => (
@@ -249,10 +264,10 @@ function AlertDetail({ api, id, onReviewed }) {
                 </li>
               ))}
             </ul>
-          ) : <p className="text-sm text-ink-soft">Riski belirgin şekilde artıran bir sinyal yok.</p>}
+          ) : <p className="text-sm text-ink-soft">{L("Riski belirgin şekilde artıran bir sinyal yok.", "No signal clearly raises the risk.")}</p>}
           {exp.mitigating.length > 0 && (
             <>
-              <h4 className="mt-4 mb-2 text-sm font-700">Riski azaltanlar</h4>
+              <h4 className="mt-4 mb-2 text-sm font-700">{L("Riski azaltanlar", "What lowers the risk")}</h4>
               <ul className="space-y-2">
                 {exp.mitigating.map((s) => (
                   <li key={s.feature} className="flex gap-2 text-sm leading-snug">
@@ -265,7 +280,7 @@ function AlertDetail({ api, id, onReviewed }) {
           )}
         </Card>
 
-        <Card title="Olası masum açıklamalar" className="ring-[#2a78d6]/30">
+        <Card title={L("Olası masum açıklamalar", "Possible innocent explanations")} className="ring-[#2a78d6]/30">
           {exp.cautions?.length > 0 && (
             <ul className="space-y-2 mb-3">
               {exp.cautions.map((t, i) => (
@@ -284,19 +299,20 @@ function AlertDetail({ api, id, onReviewed }) {
         </Card>
       </div>
 
-      <Card title="Hesaplar arası bağlantılar" right={<DemoBadge />}>
+      <Card title={L("Hesaplar arası bağlantılar", "Links between accounts")} right={<DemoBadge />}>
         <NetworkGraph graph={d.graph} accounts={d.accounts} />
       </Card>
 
-      <Card title="Modelin hesabı" right={<span className="text-xs text-ink-soft">her özelliğin risk puanına katkısı</span>}>
+      <Card title={L("Modelin hesabı", "How the model scored it")} right={<span className="text-xs text-ink-soft">{L("her özelliğin risk puanına katkısı", "each feature's contribution to the risk score")}</span>}>
         <ContributionChart values={d.contributions} features={d.features} />
         <p className="mt-3 text-xs text-ink-soft">
-          Lojistik regresyon: risk = σ(taban + Σ katkı). Katkılar ortalama bir kümeye göre ölçülür; etkinlik, kulüp ve bölüm bağlamı ise “hiç bağlam yok” noktasına göre, bu yüzden yalnız riski azaltabilir. Gerekçeler bu katkılardan üretilir, sonradan yazılmış metin değildir.
+          {L("Lojistik regresyon: risk = σ(taban + Σ katkı). Katkılar ortalama bir kümeye göre ölçülür; etkinlik, kulüp ve bölüm bağlamı ise “hiç bağlam yok” noktasına göre, bu yüzden yalnız riski azaltabilir. Gerekçeler bu katkılardan üretilir, sonradan yazılmış metin değildir.",
+            "Logistic regression: risk = σ(base + Σ contribution). Contributions are measured against an average cluster; event, club and department context is measured against “no context at all”, so it can only lower the risk. The reasons are generated from these contributions, not written afterwards.")}
         </p>
       </Card>
 
       <div className="grid xl:grid-cols-2 gap-4">
-        <Card title="Paylaşımlar" right={<span className="text-xs text-ink-soft">{d.posts.length} paylaşım</span>}>
+        <Card title={L("Paylaşımlar", "Posts")} right={<span className="text-xs text-ink-soft">{d.posts.length} {L("paylaşım", "posts")}</span>}>
           <ul className="divide-y divide-hair">
             {posts.map((p, i) => (
               <li key={i} className="py-2 text-sm">
@@ -307,24 +323,24 @@ function AlertDetail({ api, id, onReviewed }) {
           </ul>
           {d.posts.length > 8 && (
             <button onClick={() => setShowAllPosts((x) => !x)} className="mt-2 text-xs font-600 underline underline-offset-2">
-              {showAllPosts ? "Daha az göster" : `Tümünü göster (${d.posts.length})`}
+              {showAllPosts ? L("Daha az göster", "Show less") : `${L("Tümünü göster", "Show all")} (${d.posts.length})`}
             </button>
           )}
         </Card>
 
-        <Card title="Hesaplar">
+        <Card title={L("Hesaplar", "Accounts")}>
           <div className="overflow-auto max-h-96">
             <table className="w-full text-sm">
               <thead className="text-xs text-ink-soft text-left">
-                <tr><th className="py-1 pr-2 font-600">Hesap</th><th className="pr-2 font-600">PoP</th>
-                  <th className="pr-2 font-600">Yaş</th><th className="pr-2 font-600">Bölüm</th><th className="font-600">Yakın etkinlik</th></tr>
+                <tr><th className="py-1 pr-2 font-600">{L("Hesap", "Account")}</th><th className="pr-2 font-600">PoP</th>
+                  <th className="pr-2 font-600">{L("Yaş", "Age")}</th><th className="pr-2 font-600">{L("Bölüm", "Department")}</th><th className="font-600">{L("Yakın etkinlik", "Recent event")}</th></tr>
               </thead>
               <tbody className="divide-y divide-hair">
                 {d.accounts.map((a) => (
                   <tr key={a.id}>
                     <td className="py-1.5 pr-2 font-mono text-xs">@{a.handle}</td>
-                    <td className="pr-2 whitespace-nowrap">{a.sealed ? <span className="text-trust-high" title="Mühürlü (PoP)">✓</span> : <span className="text-ink-soft">—</span>}</td>
-                    <td className={`pr-2 whitespace-nowrap ${a.is_new ? "font-600" : ""}`}>{a.account_age_days} gün{a.is_new ? " (yeni)" : ""}</td>
+                    <td className="pr-2 whitespace-nowrap">{a.sealed ? <span className="text-trust-high" title={L("Mühürlü (PoP)", "Sealed (PoP)")}>✓</span> : <span className="text-ink-soft">—</span>}</td>
+                    <td className={`pr-2 whitespace-nowrap ${a.is_new ? "font-600" : ""}`}>{a.account_age_days} {L("gün", "days")}{a.is_new ? L(" (yeni)", " (new)") : ""}</td>
                     <td className="pr-2">{a.department}</td>
                     <td className="text-xs">{a.recent_events.join(", ") || <span className="text-ink-soft">—</span>}</td>
                   </tr>
@@ -339,13 +355,16 @@ function AlertDetail({ api, id, onReviewed }) {
 
       <div className="text-sm">
         <button onClick={() => setShowTruth((x) => !x)} className="text-ink-soft underline underline-offset-2 text-xs">
-          {showTruth ? "Gerçek senaryoyu gizle" : "Demo: gerçek senaryoyu göster (yalnız değerlendirme için)"}
+          {showTruth ? L("Gerçek senaryoyu gizle", "Hide the true scenario") : L("Demo: gerçek senaryoyu göster (yalnız değerlendirme için)", "Demo: show the true scenario (for evaluation only)")}
         </button>
         {showTruth && (
           <div className="mt-2 bg-surface-2 rounded-lg px-3 py-2 text-[13px]">
+            {EN ? (<>This cluster comes from the <b>{d.demo_truth.description}</b> scenario in the synthetic campus
+              (purity {Math.round(d.demo_truth.purity * 100)}%). A real product does not have this information;
+              it is here only to show whether the model works correctly.</>) : (<>
             Bu küme sentetik kampüste <b>{d.demo_truth.description}</b> senaryosundan geliyor
             (saflık %{Math.round(d.demo_truth.purity * 100)}). Gerçek üründe bu bilgi yoktur;
-            yalnız modelin doğru çalışıp çalışmadığını göstermek için buradadır.
+            yalnız modelin doğru çalışıp çalışmadığını göstermek için buradadır.</>)}
           </div>
         )}
       </div>
@@ -364,9 +383,9 @@ function ReviewBox({ api, alert, onDone }) {
     setBusy(false);
   }
   return (
-    <Card title="İnsan incelemesi" right={<span className="text-xs text-ink-soft">son karar senin</span>}>
+    <Card title={L("İnsan incelemesi", "Human review")} right={<span className="text-xs text-ink-soft">{L("son karar senin", "the final call is yours")}</span>}>
       <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} maxLength={500}
-        placeholder="Not (isteğe bağlı): ör. 'Kulübün duyurusu, kontrol ettim.'"
+        placeholder={L("Not (isteğe bağlı): ör. 'Kulübün duyurusu, kontrol ettim.'", "Note (optional): e.g. 'Club announcement, I checked.'")}
         className="w-full text-sm px-3 py-2 rounded-lg bg-surface-2 ring-1 ring-hair outline-none focus:ring-ink resize-none" />
       <div className="mt-2 grid sm:grid-cols-3 gap-2">
         {DECISIONS.map(([v, l, hint]) => (
@@ -381,7 +400,7 @@ function ReviewBox({ api, alert, onDone }) {
       {err && <p className="mt-2 text-sm text-brand">{err}</p>}
       {alert.reviews.length > 0 && (
         <>
-          <h4 className="mt-4 mb-1 text-sm font-700">Geçmiş</h4>
+          <h4 className="mt-4 mb-1 text-sm font-700">{L("Geçmiş", "History")}</h4>
           <ul className="text-sm space-y-1">
             {alert.reviews.slice().reverse().map((r, i) => (
               <li key={i} className="flex gap-2">
@@ -407,6 +426,10 @@ function forceLayout(nodes, edges, w, h) {
   const idx = new Map(nodes.map((d, i) => [d.id, i]));
   const E = edges.map(([a, b]) => [idx.get(a), idx.get(b)]).filter(([a, b]) => a != null && b != null);
   const k = Math.sqrt((w * h) / Math.max(1, n)) * 0.55;
+  // Yoğun kümelerde (ör. 32 hesap, yüzlerce benzer paylaşım bağlantısı) çekim baskın gelip
+  // düğümler tek yumağa toplanıyordu: çekimi ortalama dereceye göre zayıflat.
+  const avgDeg = (2 * E.length) / Math.max(1, n);
+  const pull = 1 / Math.max(1, avgDeg / 3);
   const iters = 300;
   for (let it = 0; it < iters; it++) {
     const temp = (w / 10) * (1 - it / iters) + 0.5;
@@ -419,12 +442,12 @@ function forceLayout(nodes, edges, w, h) {
     }
     for (const [a, b] of E) {
       const dx = pos[a].x - pos[b].x, dy = pos[a].y - pos[b].y;
-      const d = Math.max(0.01, Math.hypot(dx, dy)), f = (d * d) / k;
+      const d = Math.max(0.01, Math.hypot(dx, dy)), f = ((d * d) / k) * pull;
       disp[a].x -= (dx / d) * f; disp[a].y -= (dy / d) * f;
       disp[b].x += (dx / d) * f; disp[b].y += (dy / d) * f;
     }
     for (let i = 0; i < n; i++) {
-      disp[i].x += (w / 2 - pos[i].x) * 0.05; disp[i].y += (h / 2 - pos[i].y) * 0.05;
+      disp[i].x += (w / 2 - pos[i].x) * 0.05 * pull; disp[i].y += (h / 2 - pos[i].y) * 0.05 * pull;
       const d = Math.max(0.01, Math.hypot(disp[i].x, disp[i].y));
       pos[i].x += (disp[i].x / d) * Math.min(d, temp);
       pos[i].y += (disp[i].y / d) * Math.min(d, temp);
@@ -449,16 +472,16 @@ function NetworkGraph({ graph, accounts }) {
 
   return (
     <div>
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-soft mb-2" aria-label="Lejant">
-        <span className="inline-flex items-center gap-1.5"><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill={C_SEALED} /></svg>mühürlü (PoP) · {sealedN}</span>
-        <span className="inline-flex items-center gap-1.5"><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill={C_UNSEALED} /></svg>mühürsüz · {graph.nodes.length - sealedN}</span>
-        <span className="inline-flex items-center gap-1.5"><svg width="16" height="16"><circle cx="8" cy="8" r="4" fill="#9aa3ad" /><circle cx="8" cy="8" r="7" fill="none" stroke="#15181c" strokeDasharray="2 2" /></svg>son 30 günde açılmış</span>
-        <span className="inline-flex items-center gap-1.5"><svg width="20" height="8"><line x1="0" y1="4" x2="20" y2="4" stroke={C_FOLLOW} strokeWidth="2" /></svg>takip</span>
-        <span className="inline-flex items-center gap-1.5"><svg width="20" height="8"><line x1="0" y1="4" x2="20" y2="4" stroke="#15181c" strokeOpacity=".55" strokeWidth="2" strokeDasharray="4 3" /></svg>benzer paylaşım</span>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-soft mb-2" aria-label={L("Lejant", "Legend")}>
+        <span className="inline-flex items-center gap-1.5"><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill={C_SEALED} /></svg>{L("mühürlü (PoP)", "sealed (PoP)")} · {sealedN}</span>
+        <span className="inline-flex items-center gap-1.5"><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill={C_UNSEALED} /></svg>{L("mühürsüz", "unsealed")} · {graph.nodes.length - sealedN}</span>
+        <span className="inline-flex items-center gap-1.5"><svg width="16" height="16"><circle cx="8" cy="8" r="4" fill="#9aa3ad" /><circle cx="8" cy="8" r="7" fill="none" stroke="#15181c" strokeDasharray="2 2" /></svg>{L("son 30 günde açılmış", "created in the last 30 days")}</span>
+        <span className="inline-flex items-center gap-1.5"><svg width="20" height="8"><line x1="0" y1="4" x2="20" y2="4" stroke={C_FOLLOW} strokeWidth="2" /></svg>{L("takip", "follows")}</span>
+        <span className="inline-flex items-center gap-1.5"><svg width="20" height="8"><line x1="0" y1="4" x2="20" y2="4" stroke="#15181c" strokeOpacity=".55" strokeWidth="2" strokeDasharray="4 3" /></svg>{L("benzer paylaşım", "similar post")}</span>
       </div>
       <div className="relative">
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto bg-[#fcfcfb] rounded-xl ring-1 ring-hair" role="img"
-          aria-label={`${graph.nodes.length} hesaplık ağ: ${graph.follow_edges.length} takip, ${graph.similarity_edges.length} benzer paylaşım bağlantısı`}>
+          aria-label={L(`${graph.nodes.length} hesaplık ağ: ${graph.follow_edges.length} takip, ${graph.similarity_edges.length} benzer paylaşım bağlantısı`, `Network of ${graph.nodes.length} accounts: ${graph.follow_edges.length} follow and ${graph.similarity_edges.length} similar-post links`)}>
           {graph.follow_edges.map(([a, b], i) => {
             const p = at.get(a), q = at.get(b);
             return p && q ? <line key={"f" + i} x1={p.x} y1={p.y} x2={q.x} y2={q.y} stroke={C_FOLLOW} strokeWidth="1" /> : null;
@@ -484,7 +507,7 @@ function NetworkGraph({ graph, accounts }) {
           <div className="pointer-events-none absolute z-10 bg-ink text-white text-xs rounded-lg px-2.5 py-1.5 shadow-lg"
             style={{ left: `${(hp.x / W) * 100}%`, top: `${(hp.y / H) * 100}%`, transform: "translate(-50%, calc(-100% - 14px))" }}>
             <div className="font-600">@{h.handle}</div>
-            <div>{h.sealed ? "Mühürlü (PoP)" : "Mühürsüz"} · {h.account_age_days} günlük hesap</div>
+            <div>{h.sealed ? L("Mühürlü (PoP)", "Sealed (PoP)") : L("Mühürsüz", "Unsealed")} · {L(`${h.account_age_days} günlük hesap`, `${h.account_age_days}-day-old account`)}</div>
             <div className="text-white/70">{h.department}{h.recent_events.length ? ` · ${h.recent_events[0]}` : ""}</div>
           </div>
         )}
@@ -500,8 +523,8 @@ function ContributionChart({ values, features }) {
   return (
     <div>
       <div className="flex gap-4 text-xs text-ink-soft mb-2">
-        <span className="inline-flex items-center gap-1.5"><span className="w-3 h-2 rounded-sm" style={{ background: C_UP }} />riski artırır</span>
-        <span className="inline-flex items-center gap-1.5"><span className="w-3 h-2 rounded-sm" style={{ background: C_DOWN }} />riski azaltır</span>
+        <span className="inline-flex items-center gap-1.5"><span className="w-3 h-2 rounded-sm" style={{ background: C_UP }} />{L("riski artırır", "raises risk")}</span>
+        <span className="inline-flex items-center gap-1.5"><span className="w-3 h-2 rounded-sm" style={{ background: C_DOWN }} />{L("riski azaltır", "lowers risk")}</span>
       </div>
       <ul className="space-y-1.5">
         {rows.map(([f, v]) => {
@@ -509,7 +532,7 @@ function ContributionChart({ values, features }) {
           const raw = features?.[f];
           return (
             <li key={f} className="grid grid-cols-[150px_1fr_52px] items-center gap-2 text-xs group"
-              title={`${FEATURE_TR[f] || f}: katkı ${v >= 0 ? "+" : ""}${v.toFixed(2)}${raw != null ? ` · ölçülen değer ${raw}` : ""}`}>
+              title={`${FEATURE_TR[f] || f}: ${L("katkı", "contribution")} ${v >= 0 ? "+" : ""}${v.toFixed(2)}${raw != null ? ` · ${L("ölçülen değer", "measured value")} ${raw}` : ""}`}>
               <span className="text-ink-soft truncate">{FEATURE_TR[f] || f}</span>
               <span className="relative h-3 rounded group-hover:bg-surface-2">
                 <span className="absolute top-0 bottom-0 left-1/2 w-px bg-hair" />
@@ -528,14 +551,22 @@ function ContributionChart({ values, features }) {
 }
 
 /* ------------------------------------------------------------ model kartı */
-const SCEN_TR = {
+const SCEN_TR = EN ? {
+  event_crowd: "Shared posts after an event", club_announce: "Club announcement",
+  dorm_friends: "Dorm friends", exam_night: "Exam night",
+  bot_network: "Bot network", bought_accounts: "Bought accounts",
+  paid_humans: "Paid real people", slow_campaign: "Slow campaign",
+} : {
   event_crowd: "Etkinlik sonrası ortak paylaşım", club_announce: "Kulüp duyurusu",
   dorm_friends: "Yurt arkadaşları", exam_night: "Sınav gecesi",
   bot_network: "Bot ağı", bought_accounts: "Satın alınmış hesaplar",
   paid_humans: "Ücretli gerçek kişiler", slow_campaign: "Yavaş kampanya",
 };
 
-const SHIFT_TR = {
+const SHIFT_TR = EN ? {
+  kucuk_kampus_250: "Small campus (250 students)", buyuk_kampus_900: "Large campus (900 students)",
+  masum_agirlikli: "Mostly innocent scenarios", saldiri_agirlikli: "Mostly attacks",
+} : {
   kucuk_kampus_250: "Küçük kampüs (250 öğrenci)", buyuk_kampus_900: "Büyük kampüs (900 öğrenci)",
   masum_agirlikli: "Masum senaryo ağırlıklı", saldiri_agirlikli: "Saldırı ağırlıklı",
 };
@@ -545,27 +576,27 @@ function ModelCard({ api }) {
   const [err, setErr] = useState("");
   useEffect(() => { api.model().then(setM).catch((e) => setErr(e.message)); }, [api]);
   if (err) return <p className="p-6 text-sm text-brand">{err}</p>;
-  if (!m) return <p className="p-6 text-sm text-ink-soft">Yükleniyor…</p>;
+  if (!m) return <p className="p-6 text-sm text-ink-soft">{L("Yükleniyor…", "Loading…")}</p>;
   const ev = m.evaluation;
-  const pct = (x) => `%${Math.round(x * 100)}`;
+  const pct = (x) => (EN ? `${Math.round(x * 100)}%` : `%${Math.round(x * 100)}`);
   return (
     <div className="max-w-5xl mx-auto px-4 py-4 space-y-4 ink-in">
-      <Card title={`Model kartı · ${m.version}`} right={<DemoBadge>SENTETİK VERİ</DemoBadge>}>
+      <Card title={`${L("Model kartı", "Model card")} · ${m.version}`} right={<DemoBadge>{L("SENTETİK VERİ", "SYNTHETIC DATA")}</DemoBadge>}>
         <p className="text-sm"><b>{m.type}.</b> {m.why}</p>
-        <p className="mt-2 text-sm text-ink-soft">{m.data} PoP (mühür) durumu risk hesabına katılmaz: gerçek insan olmak koordinasyon
-          olmadığını, mühürsüz olmak da koordinasyonu kanıtlamaz.</p>
+        <p className="mt-2 text-sm text-ink-soft">{m.data} {L("PoP (mühür) durumu risk hesabına katılmaz: gerçek insan olmak koordinasyon olmadığını, mühürsüz olmak da koordinasyonu kanıtlamaz.",
+          "PoP (seal) status is not part of the risk calculation: being a real person does not prove there is no coordination, and being unsealed does not prove there is.")}</p>
       </Card>
 
       {ev && (
         <div className="grid lg:grid-cols-2 gap-4">
-          <Card title="Görülmemiş test dünyalarında sonuç">
+          <Card title={L("Görülmemiş test dünyalarında sonuç", "Results on unseen test worlds")}>
             <table className="w-full text-sm">
               <thead className="text-xs text-ink-soft text-left">
-                <tr><th className="py-1 font-600">Yöntem</th><th className="font-600 text-right">F1</th>
-                  <th className="font-600 text-right">Yanlış alarm (küme)</th><th className="font-600 text-right">Uyarıya düşen normal öğrenci</th></tr>
+                <tr><th className="py-1 font-600">{L("Yöntem", "Method")}</th><th className="font-600 text-right">F1</th>
+                  <th className="font-600 text-right">{L("Yanlış alarm (küme)", "False alarms (clusters)")}</th><th className="font-600 text-right">{L("Uyarıya düşen normal öğrenci", "Normal students alerted")}</th></tr>
               </thead>
               <tbody className="divide-y divide-hair">
-                {[["lr", "Bu model (LR)"], ["gb", "Gradient Boosting (karşılaştırma)"], ["naive", "Basit kural: benzer + hızlı"]].map(([k, l]) => (
+                {[["lr", L("Bu model (LR)", "This model (LR)")], ["gb", L("Gradient Boosting (karşılaştırma)", "Gradient Boosting (comparison)")], ["naive", L("Basit kural: benzer + hızlı", "Simple rule: similar + fast")]].map(([k, l]) => (
                   <tr key={k} className={k === "lr" ? "font-600" : ""}>
                     <td className="py-1.5">{l}</td>
                     <td className="text-right font-mono">{ev[k].cluster.f1.toFixed(2)}</td>
@@ -575,20 +606,20 @@ function ModelCard({ api }) {
                 ))}
               </tbody>
             </table>
-            <p className="mt-2 text-xs text-ink-soft">{ev.n_test_clusters} aday küme, {ev.n_test_positive} koordineli · eğitim ve test farklı kampüs dünyalarında.</p>
+            <p className="mt-2 text-xs text-ink-soft">{L(`${ev.n_test_clusters} aday küme, ${ev.n_test_positive} koordineli · eğitim ve test farklı kampüs dünyalarında.`, `${ev.n_test_clusters} candidate clusters, ${ev.n_test_positive} coordinated · training and test use different campus worlds.`)}</p>
           </Card>
 
-          <Card title="Senaryo bazında uyarı oranı">
+          <Card title={L("Senaryo bazında uyarı oranı", "Alert rate by scenario")}>
             <table className="w-full text-sm">
               <thead className="text-xs text-ink-soft text-left">
-                <tr><th className="py-1 font-600">Senaryo</th><th className="font-600">Tür</th>
-                  <th className="font-600 text-right">Bu model</th><th className="font-600 text-right">Basit kural</th></tr>
+                <tr><th className="py-1 font-600">{L("Senaryo", "Scenario")}</th><th className="font-600">{L("Tür", "Type")}</th>
+                  <th className="font-600 text-right">{L("Bu model", "This model")}</th><th className="font-600 text-right">{L("Basit kural", "Simple rule")}</th></tr>
               </thead>
               <tbody className="divide-y divide-hair">
                 {Object.entries(ev.lr.scenarios).map(([k, s]) => (
                   <tr key={k}>
                     <td className="py-1.5">{SCEN_TR[k] || k}</td>
-                    <td className="text-xs text-ink-soft">{s.kind === "masum" ? "masum → düşük olmalı" : "koordineli → yüksek olmalı"}</td>
+                    <td className="text-xs text-ink-soft">{s.kind === "masum" ? L("masum → düşük olmalı", "innocent → should be low") : L("koordineli → yüksek olmalı", "coordinated → should be high")}</td>
                     <td className="text-right font-mono">{pct(s.rate)}</td>
                     <td className="text-right font-mono text-ink-soft">{pct(ev.naive.scenarios[k].rate)}</td>
                   </tr>
@@ -601,11 +632,11 @@ function ModelCard({ api }) {
 
       {m.robustness && (
         <div className="grid lg:grid-cols-2 gap-4">
-          <Card title="Eşik değişince ne olur?">
+          <Card title={L("Eşik değişince ne olur?", "What if the threshold changes?")}>
             <table className="w-full text-sm">
               <thead className="text-xs text-ink-soft text-left">
-                <tr><th className="py-1 font-600">Eşik</th><th className="font-600 text-right">Masum alarm</th>
-                  <th className="font-600 text-right">Koordineli tespit</th><th className="font-600 text-right">Normal öğrenci YP</th></tr>
+                <tr><th className="py-1 font-600">{L("Eşik", "Threshold")}</th><th className="font-600 text-right">{L("Masum alarm", "Innocent alarms")}</th>
+                  <th className="font-600 text-right">{L("Koordineli tespit", "Coordinated caught")}</th><th className="font-600 text-right">{L("Normal öğrenci YP", "Normal-student FP")}</th></tr>
               </thead>
               <tbody className="divide-y divide-hair">
                 {m.robustness.threshold_sweep.map((r) => (
@@ -618,16 +649,16 @@ function ModelCard({ api }) {
                 ))}
               </tbody>
             </table>
-            <p className="mt-2 text-xs text-ink-soft">Tespit eşikten neredeyse bağımsız: kaçan kampanyaların çoğu aday kümeye hiç girmiyor.</p>
+            <p className="mt-2 text-xs text-ink-soft">{L("Tespit eşikten neredeyse bağımsız: kaçan kampanyaların çoğu aday kümeye hiç girmiyor.", "Detection barely depends on the threshold: most missed campaigns never enter a candidate cluster.")}</p>
           </Card>
-          <Card title="Saldırı ve dağılım kayması">
+          <Card title={L("Saldırı ve dağılım kayması", "Attacks and distribution shift")}>
             <table className="w-full text-sm">
               <tbody className="divide-y divide-hair">
-                <tr><td className="py-1.5">Kamufle saldırı (etkinlik katılımcılarına kampanya, eğitimde görülmedi)</td>
-                  <td className="text-right font-mono">{pct(m.robustness.adversarial.rates.camouflaged_campaign)} tespit</td></tr>
+                <tr><td className="py-1.5">{L("Kamufle saldırı (etkinlik katılımcılarına kampanya, eğitimde görülmedi)", "Camouflaged attack (campaign run through event attendees, never seen in training)")}</td>
+                  <td className="text-right font-mono">{pct(m.robustness.adversarial.rates.camouflaged_campaign)} {L("tespit", "caught")}</td></tr>
                 {Object.entries(m.robustness.distribution_shift).map(([k, v]) => (
                   <tr key={k}><td className="py-1.5">{SHIFT_TR[k] || k}</td>
-                    <td className="text-right font-mono whitespace-nowrap">{pct(v.koordineli_ortalama_tespit)} tespit · {pct(v.masum_ortalama_alarm)} alarm</td></tr>
+                    <td className="text-right font-mono whitespace-nowrap">{pct(v.koordineli_ortalama_tespit)} {L("tespit", "caught")} · {pct(v.masum_ortalama_alarm)} {L("alarm", "alarms")}</td></tr>
                 ))}
               </tbody>
             </table>
@@ -635,11 +666,11 @@ function ModelCard({ api }) {
         </div>
       )}
 
-      <Card title="Katsayılar" right={<span className="text-xs text-ink-soft">standartlaştırılmış özellik başına</span>}>
+      <Card title={L("Katsayılar", "Coefficients")} right={<span className="text-xs text-ink-soft">{L("standartlaştırılmış özellik başına", "per standardized feature")}</span>}>
         <ContributionChart values={m.coefficients} />
       </Card>
 
-      <Card title="Bilinen sınırlar">
+      <Card title={L("Bilinen sınırlar", "Known limits")}>
         <ul className="space-y-1.5 text-sm list-disc pl-5">
           {m.limits.map((l, i) => <li key={i}>{l}</li>)}
         </ul>

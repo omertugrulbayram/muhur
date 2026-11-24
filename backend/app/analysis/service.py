@@ -40,6 +40,35 @@ SCENARIO_TR = {
     "slow_campaign": "Yavaş, yayılmış kampanya (koordineli)",
     "organic": "Organik konuşma (senaryo yok)",
 }
+SCENARIO_EN = {
+    "event_crowd": "Shared posts after an event (innocent)",
+    "club_announce": "A club announcement being shared (innocent)",
+    "dorm_friends": "Dorm friends on the same topic (innocent)",
+    "exam_night": "Exam-night posts (innocent)",
+    "bot_network": "Bot network (coordinated)",
+    "bought_accounts": "Bought / hijacked accounts (coordinated)",
+    "paid_humans": "Paid real people (coordinated)",
+    "slow_campaign": "Slow, spread-out campaign (coordinated)",
+    "organic": "Organic conversation (no scenario)",
+}
+ROLE_EN = {
+    "mühürlü gerçek insan ama koordineli kümede": "sealed real person, but in a coordinated cluster",
+    "yüksek riskli küme üyesi": "member of a high-risk cluster",
+    "benzer paylaşım ama düşük risk (bağlam var)": "similar posts but low risk (context explains it)",
+    "normal öğrenci, uyarı yok": "normal student, no alert",
+}
+
+
+def _lang(lang: str | None) -> str:
+    return "en" if lang == "en" else "tr"
+
+
+def _truth_text(truth: dict | None, lang: str) -> str:
+    if truth is None:
+        return "Normal student" if lang == "en" else "Normal öğrenci"
+    if lang == "en":
+        return SCENARIO_EN.get(truth["scenario"], truth["description"])
+    return truth["description"]
 
 
 def demo_national_id(seed: int, account_id: int) -> str:
@@ -62,10 +91,12 @@ def _analysis(seed: int) -> tuple:
     return tuple(analyze(campus(seed), model()))
 
 
-def _fmt_time(t_min: float) -> str:
+def _fmt_time(t_min: float, lang: str = "tr") -> str:
     day = int(t_min // DAY) + 1
     h = int((t_min % DAY) // 60)
     m = int(t_min % 60)
+    if lang == "en":
+        return f"day {day}, {h:02d}:{m:02d}"
     return f"{day}. gün {h:02d}:{m:02d}"
 
 
@@ -87,8 +118,10 @@ def run_demo_analysis(seed: int = DEMO_SEED, organizer_id: str = DEMO_ORGANIZER)
                 "n_posts": len(r["post_ids"]),
                 "span_min": r["context"]["span_min"],
                 "first_post": _fmt_time(r["context"]["t0"]),
+                "t0": r["context"]["t0"],
                 "sample_texts": r["context"]["sample_texts"],
                 "explanation": r["explanation"],
+                "explanation_en": r["explanation_en"],
                 "features": r["features"],
                 "contributions": r["contributions"],
                 "members": r["members"],
@@ -126,13 +159,21 @@ def _account_view(c: Campus, acc_id: int, t0: float) -> dict:
     }
 
 
-def alert_summary(row: dict) -> dict:
+def _explanation(d: dict, lang: str) -> dict:
+    if lang == "en" and d.get("explanation_en"):
+        return d["explanation_en"]
+    return d["explanation"]
+
+
+def alert_summary(row: dict, lang: str = "tr") -> dict:
+    lang = _lang(lang)
     d = row["data"]
-    exp = d["explanation"]
+    exp = _explanation(d, lang)
+    first = _fmt_time(d["t0"], lang) if "t0" in d else d["first_post"]
     return {
         "id": row["id"], "risk": row["risk"], "level": row["level"], "status": row["status"],
         "model_version": row["model_version"], "size": d["size"], "n_posts": d["n_posts"],
-        "span_min": d["span_min"], "first_post": d["first_post"],
+        "span_min": d["span_min"], "first_post": first,
         "sample_text": d["sample_texts"][0] if d["sample_texts"] else "",
         "top_signals": [s["text"] for s in exp["signals"][:2]],
         "innocent_explanations": exp["innocent_explanations"],
@@ -140,9 +181,10 @@ def alert_summary(row: dict) -> dict:
     }
 
 
-def alert_detail(row: dict) -> dict:
+def alert_detail(row: dict, lang: str = "tr") -> dict:
     from app.ml.campus import CLUBS
 
+    lang = _lang(lang)
     d = row["data"]
     c = campus(d["campus_seed"])
     members = d["members"]
@@ -161,13 +203,13 @@ def alert_detail(row: dict) -> dict:
         k = (min(a, b), max(a, b))
         sim_edges[k] = max(sim_edges.get(k, 0.0), v)
     return {
-        **alert_summary(row),
-        "explanation": d["explanation"],
+        **alert_summary(row, lang),
+        "explanation": _explanation(d, lang),
         "features": d["features"],
         "contributions": d["contributions"],
         "accounts": accounts,
         "posts": [{"handle": c.accounts[p.account].handle, "account": p.account,
-                   "time": _fmt_time(p.t), "text": p.text} for p in posts[:200]],
+                   "time": _fmt_time(p.t, lang), "text": p.text} for p in posts[:200]],
         "graph": {
             "nodes": [{"id": a["id"], "handle": a["handle"], "sealed": a["sealed"],
                        "is_new": a["is_new"]} for a in accounts],
@@ -175,13 +217,41 @@ def alert_detail(row: dict) -> dict:
             "similarity_edges": [[a, b, round(v, 3)] for (a, b), v in sim_edges.items()],
         },
         "reviews": store.list_reviews(row["id"]),
-        "demo_truth": d["demo_truth"],
+        "demo_truth": ({**d["demo_truth"], "description": SCENARIO_EN.get(d["demo_truth"]["scenario"],
+                                                                          d["demo_truth"]["description"])}
+                       if lang == "en" else d["demo_truth"]),
     }
 
 
-def model_card() -> dict:
+def model_card(lang: str = "tr") -> dict:
     m = model()
     ev = json.loads(EVAL_PATH.read_text(encoding="utf-8")) if EVAL_PATH.exists() else None
+    rob = json.loads(ROBUST_PATH.read_text(encoding="utf-8")) if ROBUST_PATH.exists() else None
+    if _lang(lang) == "en":
+        return {
+            "version": m.version,
+            "type": "Logistic regression (standardized features)",
+            "why": ("The contribution of every feature to the risk score can be computed exactly; the alert "
+                    "reasons are read from the model itself."),
+            "coefficients": {f: round(float(c), 3) for f, c in zip(FEATURES, m.coef)},
+            "training": m.meta,
+            "evaluation": ev,
+            "robustness": rob,
+            "data": "Synthetic campus data (DEMO). Not tested with real user data.",
+            "limits": [
+                "Measured on synthetic data only; performance on real campus data may differ.",
+                "Campaigns written in different words and without hashtags often do not even enter a "
+                "candidate cluster.",
+                "Slow campaigns spread over several days are hard to catch.",
+                "Event/club context lowers the risk only if the posts actually mention that event/club. "
+                "75% of attacks that ran the campaign through event attendees were caught; a more careful "
+                "attacker who also adds the event name to the campaign text was not tested.",
+                "Detection stays at ~69% regardless of the threshold: most missed campaigns never enter a "
+                "candidate cluster (different sentences, no hashtag). This needs meaning-level similarity.",
+                "The model is not a verdict: it never declares an account a bot or malicious; the final "
+                "decision is made by a human.",
+            ],
+        }
     return {
         "version": m.version,
         "type": "Lojistik regresyon (standartlaştırılmış özellikler)",
@@ -207,7 +277,7 @@ def model_card() -> dict:
     }
 
 
-def demo_personas(seed: int = DEMO_SEED, organizer_id: str = DEMO_ORGANIZER) -> list[dict]:
+def demo_personas(seed: int = DEMO_SEED, organizer_id: str = DEMO_ORGANIZER, lang: str = "tr") -> list[dict]:
     """
     Akış demosu için kampüsten hesap seçer: yüksek riskli kümelerden üyeler,
     masum ama benzer paylaşım yapan bir kümeden bir üye ve hiçbir kümede olmayan
@@ -297,11 +367,11 @@ def demo_personas(seed: int = DEMO_SEED, organizer_id: str = DEMO_ORGANIZER) -> 
                 "teknofest-2026", pseudonymous_subject(demo_national_id(seed, acc_id)))]
                 if a.sealed and row_idx is None else []),
             "text": post.text,
-            "time": _fmt_time(post.t),
+            "time": _fmt_time(post.t, _lang(lang)),
             "alert_id": rows[row_idx]["id"] if row_idx is not None else None,
             "alert_level": rows[row_idx]["level"] if row_idx is not None else None,
-            "demo_role": role,
-            "demo_truth": rows[row_idx]["data"]["demo_truth"]["description"] if row_idx is not None
-            else "Normal öğrenci",
+            "demo_role": ROLE_EN.get(role, role) if _lang(lang) == "en" else role,
+            "demo_truth": _truth_text(rows[row_idx]["data"]["demo_truth"] if row_idx is not None else None,
+                                      _lang(lang)),
         })
     return out

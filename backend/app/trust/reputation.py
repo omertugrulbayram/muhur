@@ -52,6 +52,7 @@ def compute_trust_score(
     attended_event_ids: set[str] | list[str] | None = None,
     risk: dict | None = None,
     rejected_attendance: int = 0,
+    lang: str = "tr",
 ) -> dict:
     """
     personhood          : doğrulanmış personhood claim'leri (verify_personhood_token çıktısı) veya None
@@ -60,44 +61,59 @@ def compute_trust_score(
     rejected_attendance : doğrulanamadığı için sayılmayan kanıt sayısı (gerekçe için)
     """
     reasons: list[str] = []
+    en = lang == "en"
+
+    def say(tr: str, en_text: str) -> None:
+        reasons.append(en_text if en else tr)
 
     # --- PoP ---
     if personhood and personhood.get("verified_human") is True:
         p_score = 1.0
-        reasons.append("Kanıtlanmış, benzersiz gerçek insan (imzalı PoP token'ı doğrulandı).")
+        say("Kanıtlanmış, benzersiz gerçek insan (imzalı PoP token'ı doğrulandı).",
+            "Verified, unique real person (signed PoP token verified).")
         if personhood.get("simulated"):
-            reasons.append("(PoP kaynağı simülasyon issuer'dır, gerçek e-Devlet değildir.)")
+            say("(PoP kaynağı simülasyon issuer'dır, gerçek e-Devlet değildir.)",
+                "(The PoP source is a simulated issuer, not the real e-Devlet.)")
     else:
         p_score = 0.0
-        reasons.append("Kanıtlanmış insan (PoP) token'ı yok.")
+        say("Kanıtlanmış insan (PoP) token'ı yok.", "No proof-of-personhood (PoP) token.")
 
     # --- PoA ---
     events = set(attended_event_ids or []) if p_score else set()
     n = len(events)
     a_score = 1.0 - exp(-_ATTENDANCE_K * n) if n else 0.0
     if n:
-        reasons.append(f"{n} gerçek etkinliğe kanıtlanmış fiziksel katılım (imzalı PoA).")
+        say(f"{n} gerçek etkinliğe kanıtlanmış fiziksel katılım (imzalı PoA).",
+            f"Verified physical attendance at {n} real event{'s' if n != 1 else ''} (signed PoA).")
     else:
-        reasons.append("Kanıtlanmış fiziksel katılım (PoA) yok.")
+        say("Kanıtlanmış fiziksel katılım (PoA) yok.", "No verified physical attendance (PoA).")
     if rejected_attendance:
-        reasons.append(f"{rejected_attendance} katılım kanıtı doğrulanamadığı için sayılmadı.")
+        say(f"{rejected_attendance} katılım kanıtı doğrulanamadığı için sayılmadı.",
+            f"{rejected_attendance} attendance proof(s) could not be verified and were not counted.")
 
     # --- Otantiklik ---
     if risk is None:
         p = None
         factor = 1.0
-        reasons.append("Koordineli davranış analizi bu hesap için henüz yapılmadı (nötr kabul edildi).")
+        say("Koordineli davranış analizi bu hesap için henüz yapılmadı (nötr kabul edildi).",
+            "Coordinated-behaviour analysis has not run for this account yet (treated as neutral).")
     else:
         p = _clamp01(risk["probability"])
         factor = 1.0 - p
-        src = " (demo amaçlı elle girilmiş değer)" if risk.get("source") == "manual-demo" else ""
+        manual = risk.get("source") == "manual-demo"
+        src = " (demo amaçlı elle girilmiş değer)" if manual else ""
+        src_en = " (value entered manually for the demo)" if manual else ""
         if p >= 0.60:
-            reasons.append(f"Koordineli davranış sinyali yüksek (risk {p:.0%}){src}. "
-                           "Bu bir yargı değildir; son karar insan incelemesindedir.")
+            say(f"Koordineli davranış sinyali yüksek (risk {p:.0%}){src}. "
+                "Bu bir yargı değildir; son karar insan incelemesindedir.",
+                f"High coordinated-behaviour signal (risk {p:.0%}){src_en}. "
+                "This is not a verdict; the final decision is made in human review.")
         elif p >= 0.30:
-            reasons.append(f"Koordineli davranış açısından orta risk (risk {p:.0%}){src}.")
+            say(f"Koordineli davranış açısından orta risk (risk {p:.0%}){src}.",
+                f"Medium coordinated-behaviour risk (risk {p:.0%}){src_en}.")
         else:
-            reasons.append(f"Davranış otantik görünüyor (risk {p:.0%}){src}.")
+            say(f"Davranış otantik görünüyor (risk {p:.0%}){src}.",
+                f"Behaviour looks authentic (risk {p:.0%}){src_en}.")
 
     identity = W_PERSONHOOD * p_score + W_ATTENDANCE * a_score
     trust = _clamp01(identity * factor)

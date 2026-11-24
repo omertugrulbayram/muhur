@@ -193,10 +193,10 @@ class TrustRequest(Strict):
 
 
 @app.post("/trust/score")
-def trust_score(req: TrustRequest):
+def trust_score(req: TrustRequest, lang: str = "tr"):
     """Yalnız imzalı token'larla çalışır. Risk değeri sunucu kaydından gelir."""
     try:
-        return trust_for_tokens(req.personhood_token, req.attendance_tokens)
+        return trust_for_tokens(req.personhood_token, req.attendance_tokens, lang)
     except TrustInputError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -232,11 +232,11 @@ _LEVELS = {"düşük": 0, "orta": 1, "yüksek": 2}
 
 
 @app.get("/organizer/alerts")
-def organizer_alerts(min_level: str = "düşük", org: dict = Depends(require_organizer)):
+def organizer_alerts(min_level: str = "düşük", lang: str = "tr", org: dict = Depends(require_organizer)):
     """Koordinasyon uyarıları (risk sırasıyla). Veriler sentetik demo kampüsünden gelir."""
     floor = _LEVELS.get(min_level, 0)
     rows = [r for r in store.list_alerts(org["id"]) if _LEVELS[r["level"]] >= floor]
-    return {"demo": True, "alerts": [analysis.alert_summary(r) for r in rows]}
+    return {"demo": True, "alerts": [analysis.alert_summary(r, lang) for r in rows]}
 
 
 def _own_alert(alert_id: str, org: dict) -> dict:
@@ -247,8 +247,8 @@ def _own_alert(alert_id: str, org: dict) -> dict:
 
 
 @app.get("/organizer/alerts/{alert_id}")
-def organizer_alert_detail(alert_id: str, org: dict = Depends(require_organizer)):
-    return analysis.alert_detail(_own_alert(alert_id, org))
+def organizer_alert_detail(alert_id: str, lang: str = "tr", org: dict = Depends(require_organizer)):
+    return analysis.alert_detail(_own_alert(alert_id, org), lang)
 
 
 class ReviewRequest(Strict):
@@ -264,9 +264,9 @@ def organizer_review(alert_id: str, req: ReviewRequest, org: dict = Depends(requ
 
 
 @app.get("/organizer/model")
-def organizer_model(_org: dict = Depends(require_organizer)):
+def organizer_model(lang: str = "tr", _org: dict = Depends(require_organizer)):
     """Model kartı: tür, katsayılar, değerlendirme sonuçları ve bilinen sınırlar."""
-    return analysis.model_card()
+    return analysis.model_card(lang)
 
 
 @app.post("/organizer/analysis/run")
@@ -277,14 +277,14 @@ def organizer_run_analysis(org: dict = Depends(require_organizer)):
 
 
 @app.get("/demo/personas")
-def demo_personas():
+def demo_personas(lang: str = "tr"):
     """
     SİMÜLASYON: NSosyal akış demosu için demo kampüsten seçilmiş hesaplar.
     Riskleri elle değil, koordinasyon modelinin ürettiği kayıttan gelir.
     """
     if not settings.enable_demo_endpoints or not settings.demo_campus:
         raise HTTPException(status_code=404, detail="Not Found")
-    return {"demo": True, "personas": analysis.demo_personas()}
+    return {"demo": True, "personas": analysis.demo_personas(lang=lang)}
 
 
 # ---------------- Site (derlenmiş arayüz) ----------------

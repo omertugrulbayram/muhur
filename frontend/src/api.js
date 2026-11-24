@@ -4,6 +4,8 @@
 // Güvenlik notu: istemci artık güven kararını etkileyen hiçbir değeri (kimlik
 // JSON'u, bot olasılığı) göndermez; yalnız sunucunun imzaladığı token'ları taşır.
 // Geliştirmede (vite) backend ayrı portta; derlenmiş site ise backend tarafından aynı adresten sunulur.
+import { EN } from "./i18n";
+
 const BASE = import.meta.env.VITE_API_BASE ?? (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
 
 // DEMO: Bu arayüz, örnek hesapları etkinliğe "check-in" yaptırabilmek için demo
@@ -13,6 +15,7 @@ export const DEMO_ORGANIZER_KEY =
   import.meta.env.VITE_DEMO_ORGANIZER_KEY || "demo-kulup-anahtari";
 
 async function request(method, path, body, headers = {}) {
+  if (EN) path += (path.includes("?") ? "&" : "?") + "lang=en";
   const res = await fetch(BASE + path, {
     method,
     headers: { "Content-Type": "application/json", ...headers },
@@ -21,7 +24,7 @@ async function request(method, path, body, headers = {}) {
   if (!res.ok) {
     const detail = await res.json().catch(() => ({}));
     const err = new Error(
-      typeof detail.detail === "string" ? detail.detail : `Sunucu hatası (${res.status})`);
+      typeof detail.detail === "string" ? detail.detail : (EN ? `Server error (${res.status})` : `Sunucu hatası (${res.status})`));
     err.status = res.status;
     throw err;
   }
